@@ -1,0 +1,130 @@
+[
+  { "kod": "users_goruntuleme", "ad": "Kullanıcıları Görüntüleme", "modul": "Kullanıcı Yönetimi", "islem": "goruntuleme" },
+  { "kod": "users_ekleme", "ad": "Kullanıcı Ekleme", "modul": "Kullanıcı Yönetimi", "islem": "ekleme" },
+  { "kod": "users_duzenleme", "ad": "Kullanıcı Düzenleme", "modul": "Kullanıcı Yönetimi", "islem": "duzenleme" },
+  { "kod": "users_silme", "ad": "Kullanıcı Silme", "modul": "Kullanıcı Yönetimi", "islem": "silme" },
+
+  { "kod": "roller_goruntuleme", "ad": "Rolleri Görüntüleme", "modul": "Rol Yönetimi", "islem": "goruntuleme" },
+  { "kod": "roller_ekleme", "ad": "Rol Ekleme", "modul": "Rol Yönetimi", "islem": "ekleme" },
+  { "kod": "roller_duzenleme", "ad": "Rol Düzenleme", "modul": "Rol Yönetimi", "islem": "duzenleme" },
+  { "kod": "roller_silme", "ad": "Rol Silme", "modul": "Rol Yönetimi", "islem": "silme" },
+
+  { "kod": "yetkiler_goruntuleme", "ad": "Yetkileri Görüntüleme", "modul": "Yetki Yönetimi", "islem": "goruntuleme" },
+  { "kod": "yetkiler_ekleme", "ad": "Yetki Ekleme", "modul": "Yetki Yönetimi", "islem": "ekleme" },
+  { "kod": "yetkiler_duzenleme", "ad": "Yetki Düzenleme", "modul": "Yetki Yönetimi", "islem": "duzenleme" },
+  { "kod": "yetkiler_silme", "ad": "Yetki Silme", "modul": "Yetki Yönetimi", "islem": "silme" },
+
+  { "kod": "aboneler_goruntuleme", "ad": "Aboneleri Görüntüleme", "modul": "Abone Yönetimi", "islem": "goruntuleme" },
+  { "kod": "aboneler_ekleme", "ad": "Abone Ekleme", "modul": "Abone Yönetimi", "islem": "ekleme" },
+  { "kod": "aboneler_duzenleme", "ad": "Abone Düzenleme", "modul": "Abone Yönetimi", "islem": "duzenleme" },
+  { "kod": "aboneler_silme", "ad": "Abone Silme", "modul": "Abone Yönetimi", "islem": "silme" },
+
+  { "kod": "borclar_goruntuleme", "ad": "Borçları Görüntüleme", "modul": "Borç Yönetimi", "islem": "goruntuleme" },
+  { "kod": "borclar_ekleme", "ad": "Borç Ekleme", "modul": "Borç Yönetimi", "islem": "ekleme" },
+  { "kod": "borclar_duzenleme", "ad": "Borç Düzenleme", "modul": "Borç Yönetimi", "islem": "duzenleme" },
+  { "kod": "borclar_silme", "ad": "Borç Silme", "modul": "Borç Yönetimi", "islem": "silme" },
+
+  { "kod": "kasalar_goruntuleme", "ad": "Kasaları Görüntüleme", "modul": "Kasa Yönetimi", "islem": "goruntuleme" },
+  { "kod": "kasalar_ekleme", "ad": "Kasa Ekleme", "modul": "Kasa Yönetimi", "islem": "ekleme" },
+  { "kod": "kasalar_duzenleme", "ad": "Kasa Düzenleme", "modul": "Kasa Yönetimi", "islem": "duzenleme" },
+  { "kod": "kasalar_silme", "ad": "Kasa Silme", "modul": "Kasa Yönetimi", "islem": "silme" },
+
+  { "kod": "odemeler_goruntuleme", "ad": "Ödemeleri Görüntüleme", "modul": "Ödeme Yönetimi", "islem": "goruntuleme" },
+  { "kod": "odemeler_ekleme", "ad": "Ödeme Ekleme", "modul": "Ödeme Yönetimi", "islem": "ekleme" },
+  { "kod": "odemeler_duzenleme", "ad": "Ödeme Düzenleme", "modul": "Ödeme Yönetimi", "islem": "duzenleme" },
+  { "kod": "odemeler_silme", "ad": "Ödeme Silme", "modul": "Ödeme Yönetimi", "islem": "silme" },
+
+  { "kod": "etkinlikler_goruntuleme", "ad": "Etkinlikleri Görüntüleme", "modul": "Etkinlik Yönetimi", "islem": "goruntuleme" },
+  { "kod": "etkinlikler_ekleme", "ad": "Etkinlik Ekleme", "modul": "Etkinlik Yönetimi", "islem": "ekleme" },
+  { "kod": "etkinlikler_duzenleme", "ad": "Etkinlik Düzenleme", "modul": "Etkinlik Yönetimi", "islem": "duzenleme" },
+  { "kod": "etkinlikler_silme", "ad": "Etkinlik Silme", "modul": "Etkinlik Yönetimi", "islem": "silme" },
+
+  { "kod": "proje_goruntuleme", "ad": "Projeleri Görüntüleme", "modul": "Proje Yönetimi", "islem": "goruntuleme" },
+  { "kod": "proje_ekleme", "ad": "Proje Ekleme", "modul": "Proje Yönetimi", "islem": "ekleme" },
+  { "kod": "proje_duzenleme", "ad": "Proje Düzenleme", "modul": "Proje Yönetimi", "islem": "duzenleme" },
+  { "kod": "proje_silme", "ad": "Proje Silme", "modul": "Proje Yönetimi", "islem": "silme" },
+
+  { "kod": "raporlar_goruntuleme", "ad": "Raporları Görüntüleme", "modul": "Rapor Yönetimi", "islem": "goruntuleme" },
+  { "kod": "raporlar_olusturma", "ad": "Rapor Oluşturma", "modul": "Rapor Yönetimi", "islem": "ekleme" },
+
+  { "kod": "uyeler_goruntuleme", "ad": "Üyeleri Görüntüleme", "modul": "Üye Yönetimi", "islem": "goruntuleme" },
+  { "kod": "uyeler_ekleme", "ad": "Üye Ekleme", "modul": "Üye Yönetimi", "islem": "ekleme" },
+  { "kod": "uyeler_duzenleme", "ad": "Üye Düzenleme", "modul": "Üye Yönetimi", "islem": "duzenleme" },
+  { "kod": "uyeler_silme", "ad": "Üye Silme", "modul": "Üye Yönetimi", "islem": "silme" },
+
+  { "kod": "uyeRoller_goruntuleme", "ad": "Üye Rolleri Görüntüleme", "modul": "Üye Rol Yönetimi", "islem": "goruntuleme" },
+  { "kod": "uyeRoller_ekleme", "ad": "Üye Rolü Ekleme", "modul": "Üye Rol Yönetimi", "islem": "ekleme" },
+  { "kod": "uyeRoller_duzenleme", "ad": "Üye Rolü Düzenleme", "modul": "Üye Rol Yönetimi", "islem": "duzenleme" },
+  { "kod": "uyeRoller_silme", "ad": "Üye Rolü Silme", "modul": "Üye Rol Yönetimi", "islem": "silme" },
+
+  { "kod": "randevular_goruntuleme", "ad": "Randevuları Görüntüleme", "modul": "Randevu Yönetimi", "islem": "goruntuleme" },
+  { "kod": "randevular_ekleme", "ad": "Randevu Ekleme", "modul": "Randevu Yönetimi", "islem": "ekleme" },
+  { "kod": "randevular_duzenleme", "ad": "Randevu Düzenleme", "modul": "Randevu Yönetimi", "islem": "duzenleme" },
+  { "kod": "randevular_silme", "ad": "Randevu Silme", "modul": "Randevu Yönetimi", "islem": "silme" },
+
+  { "kod": "randevu_slotlari_goruntuleme", "ad": "Randevu Slotlarını Görüntüleme", "modul": "Randevu Yönetimi", "islem": "goruntuleme" },
+  { "kod": "randevu_slotlari_ekleme", "ad": "Randevu Slotu Ekleme", "modul": "Randevu Yönetimi", "islem": "ekleme" },
+  { "kod": "randevu_slotlari_duzenleme", "ad": "Randevu Slotu Düzenleme", "modul": "Randevu Yönetimi", "islem": "duzenleme" },
+  { "kod": "randevu_slotlari_silme", "ad": "Randevu Slotu Silme", "modul": "Randevu Yönetimi", "islem": "silme" },
+
+  { "kod": "randevu_tanimlari_goruntuleme", "ad": "Randevu Tanımlarını Görüntüleme", "modul": "Randevu Yönetimi", "islem": "goruntuleme" },
+  { "kod": "randevu_tanimlari_ekleme", "ad": "Randevu Tanımı Ekleme", "modul": "Randevu Yönetimi", "islem": "ekleme" },
+  { "kod": "randevu_tanimlari_duzenleme", "ad": "Randevu Tanımı Düzenleme", "modul": "Randevu Yönetimi", "islem": "duzenleme" },
+  { "kod": "randevu_tanimlari_silme", "ad": "Randevu Tanımı Silme", "modul": "Randevu Yönetimi", "islem": "silme" },
+
+  { "kod": "gruplar_goruntuleme", "ad": "Grupları Görüntüleme", "modul": "Grup Yönetimi", "islem": "goruntuleme" },
+  { "kod": "gruplar_ekleme", "ad": "Grup Ekleme", "modul": "Grup Yönetimi", "islem": "ekleme" },
+  { "kod": "gruplar_duzenleme", "ad": "Grup Düzenleme", "modul": "Grup Yönetimi", "islem": "duzenleme" },
+  { "kod": "gruplar_silme", "ad": "Grup Silme", "modul": "Grup Yönetimi", "islem": "silme" },
+
+  { "kod": "gelirler_goruntuleme", "ad": "Gelirleri Görüntüleme", "modul": "Gelir Yönetimi", "islem": "goruntuleme" },
+  { "kod": "gelirler_ekleme", "ad": "Gelir Ekleme", "modul": "Gelir Yönetimi", "islem": "ekleme" },
+  { "kod": "gelirler_duzenleme", "ad": "Gelir Düzenleme", "modul": "Gelir Yönetimi", "islem": "duzenleme" },
+  { "kod": "gelirler_silme", "ad": "Gelir Silme", "modul": "Gelir Yönetimi", "islem": "silme" },
+
+  { "kod": "giderler_goruntuleme", "ad": "Giderleri Görüntüleme", "modul": "Gider Yönetimi", "islem": "goruntuleme" },
+  { "kod": "giderler_ekleme", "ad": "Gider Ekleme", "modul": "Gider Yönetimi", "islem": "ekleme" },
+  { "kod": "giderler_duzenleme", "ad": "Gider Düzenleme", "modul": "Gider Yönetimi", "islem": "duzenleme" },
+  { "kod": "giderler_silme", "ad": "Gider Silme", "modul": "Gider Yönetimi", "islem": "silme" },
+
+  { "kod": "kisiler_goruntuleme", "ad": "Kişileri Görüntüleme", "modul": "Kişi Yönetimi", "islem": "goruntuleme" },
+  { "kod": "kisiler_ekleme", "ad": "Kişi Ekleme", "modul": "Kişi Yönetimi", "islem": "ekleme" },
+  { "kod": "kisiler_duzenleme", "ad": "Kişi Düzenleme", "modul": "Kişi Yönetimi", "islem": "duzenleme" },
+  { "kod": "kisiler_silme", "ad": "Kişi Silme", "modul": "Kişi Yönetimi", "islem": "silme" },
+
+  {
+    "kod": "auditlogs_goruntuleme",
+    "ad": "Audit Log Görüntüleme",
+    "modul": "Sistem",
+    "islem": "goruntuleme",
+    "isActive": true
+  },
+  {
+    "kod": "quickactions_goruntuleme",
+    "ad": "Hızlı İşlemleri Görüntüleme",
+    "modul": "Hızlı İşlemler",
+    "islem": "goruntuleme",
+    "isActive": true
+  },
+  {
+    "kod": "quickactions_ekleme",
+    "ad": "Hızlı İşlem Ekleme",
+    "modul": "Hızlı İşlemler",
+    "islem": "ekleme",
+    "isActive": true
+  },
+  {
+    "kod": "quickactions_duzenleme",
+    "ad": "Hızlı İşlem Düzenleme",
+    "modul": "Hızlı İşlemler",
+    "islem": "duzenleme",
+    "isActive": true
+  },
+  {
+    "kod": "quickactions_silme",
+    "ad": "Hızlı İşlem Silme",
+    "modul": "Hızlı İşlemler",
+    "islem": "silme",
+    "isActive": true
+  }
+]

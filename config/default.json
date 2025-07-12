@@ -1,0 +1,16 @@
+{
+  "database": {
+    "host": "localhost",
+    "port": 5432,
+    "database": "ticket_db",
+    "username": "postgres",
+    "password": "password",
+    "dialect": "postgres",
+    "logging": false
+  },
+  "jwtSecret": "aidat_guvenlı_jwt_tokeni_2023_xHz9K7nL2pQr8S5tU3vW6y",
+  "jwtExpire": "1h",
+  "adminEmail": "admin@example.com",
+  "adminPassword": "admin123456",
+  "adminName": "Admin Kullanıcı"
+}

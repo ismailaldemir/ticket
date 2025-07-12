@@ -1,0 +1,37 @@
+services:
+  - type: web
+    name: iaidat-backend
+    env: node
+    plan: free
+    buildCommand: |
+      npm install
+    startCommand: |
+      npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: MONGO_URI
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+      # Diğer backend ortam değişkenlerini ekle
+    rootDir: .
+    autoDeploy: true
+
+  - type: web
+    name: iaidat-frontend
+    env: node
+    plan: free
+    buildCommand: |
+      cd client
+      npm install
+      npm run build
+      npm install -g serve
+    startCommand: |
+      serve -s client/build -l 3000
+    envVars:
+      - key: REACT_APP_API_URL
+        value: https://iaidat-backend.onrender.com # Backend Render URL'si ile değiştir
+      # Diğer frontend ortam değişkenlerini ekle
+    rootDir: .
+    autoDeploy: true

@@ -1,0 +1,8 @@
+/* Sayfa içeriği padding ayarları */
+.page-container {
+  padding: 1rem 0;
+}
+
+.content-section {
+  margin-bottom: 1rem;
+}
