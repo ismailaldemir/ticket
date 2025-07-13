@@ -8,14 +8,20 @@ const logger = require("../utils/logger");
  */
 const yetkiKontrol = (yetkiKodu) => async (req, res, next) => {
   try {
-    // Kullanıcının rollerini ve rollerin yetkilerini popüle et
-    const user = await User.findById(req.user.id).populate({
-      path: "roller",
-      select: "yetkiler isAdmin ad",
-      populate: {
-        path: "yetkiler",
-        select: "kod",
-      },
+    // Kullanıcının rollerini ve rollerin yetkilerini include et
+    const user = await User.findByPk(req.user.id, {
+      include: [
+        {
+          association: "roller",
+          attributes: ["id", "ad", "isAdmin"],
+          include: [
+            {
+              association: "yetkiler",
+              attributes: ["kod"],
+            },
+          ],
+        },
+      ],
     });
 
     if (!user) {
@@ -40,7 +46,7 @@ const yetkiKontrol = (yetkiKodu) => async (req, res, next) => {
       logger.info(
         `Admin rolüne sahip kullanıcı (${user.name}) erişim yetkisi onaylandı: ${yetkiKodu}`,
         {
-          userId: user._id,
+          userId: user.id,
           endpoint: req.originalUrl || req.url,
           method: req.method,
           yetkiKodu,
@@ -64,11 +70,11 @@ const yetkiKontrol = (yetkiKodu) => async (req, res, next) => {
     if (kullaniciYetkileri.includes(yetkiKodu)) {
       logger.info(
         `Kullanıcı (${user.name}) için yetki onaylandı: ${yetkiKodu}`,
-        { userId: user._id }
+        { userId: user.id }
       );
       return next();
     } else {
-      logger.warn("Yetki reddedildi", { userId: user._id, yetkiKodu });
+      logger.warn("Yetki reddedildi", { userId: user.id, yetkiKodu });
       return res.status(403).json({
         msg: "Bu işlemi gerçekleştirmek için yetkiniz yok.",
         yetkiKodu,

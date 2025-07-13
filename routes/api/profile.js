@@ -11,18 +11,21 @@ const User = require("../../models/User");
 router.get("/me", auth, async (req, res) => {
   try {
     // Kullanıcıyı roller ve rollerin yetkileriyle birlikte eksiksiz çek
-    const user = await User.findById(req.user.id)
-      .select("-password")
-      .populate([
+    const user = await User.findByPk(req.user.id, {
+      attributes: { exclude: ["password"] },
+      include: [
         {
-          path: "roller",
-          select: "ad aciklama isAdmin yetkiler",
-          populate: {
-            path: "yetkiler",
-            select: "kod ad modul islem",
-          },
+          association: "roller",
+          attributes: ["id", "ad", "aciklama", "isAdmin"],
+          include: [
+            {
+              association: "yetkiler",
+              attributes: ["kod", "ad", "modul", "islem"],
+            },
+          ],
         },
-      ]);
+      ],
+    });
 
     if (!user) {
       return res
@@ -39,9 +42,7 @@ router.get("/me", auth, async (req, res) => {
         ...rol,
         yetkiler: Array.isArray(rol.yetkiler)
           ? rol.yetkiler.map((y) =>
-              typeof y === "object" && y !== null
-                ? y
-                : {}
+              typeof y === "object" && y !== null ? y : {}
             )
           : [],
       }));

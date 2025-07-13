@@ -1,44 +1,43 @@
-const mongoose = require("mongoose");
+const { DataTypes } = require("sequelize");
+const sequelize = require("../config/database");
 
-const QuickActionSchema = mongoose.Schema({
-  user: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "user", // düzeltildi
-    required: true,
-  },
-  actions: [
-    {
-      id: {
-        type: String,
-        required: true,
-      },
-      title: {
-        type: String,
-        required: true,
-      },
-      icon: {
-        type: String,
-      },
-      path: {
-        type: String,
-        required: true,
-      },
-      permission: {
-        type: String,
-      },
-      color: {
-        type: String,
-        default: "primary",
-      },
-      description: {
-        type: String,
+const QuickAction = sequelize.define(
+  "QuickAction",
+  {
+    id: {
+      type: DataTypes.UUID,
+      defaultValue: DataTypes.UUIDV4,
+      primaryKey: true,
+    },
+    user_id: {
+      type: DataTypes.UUID,
+      allowNull: false,
+      references: {
+        model: "users",
+        key: "id",
       },
     },
-  ],
-  createdAt: {
-    type: Date,
-    default: Date.now,
+    actions: {
+      type: DataTypes.JSONB,
+      defaultValue: [],
+      validate: {
+        isArray(value) {
+          if (!Array.isArray(value)) {
+            throw new Error("Actions must be an array");
+          }
+        },
+      },
+    },
   },
-});
+  {
+    tableName: "quick_actions",
+    timestamps: true,
+    indexes: [
+      {
+        fields: ["user_id"],
+      },
+    ],
+  }
+);
 
-module.exports = mongoose.model("QuickAction", QuickActionSchema);
+module.exports = QuickAction;

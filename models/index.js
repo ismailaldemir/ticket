@@ -44,6 +44,7 @@ const Dokuman = require("./Dokuman");
 const KisiEk = require("./KisiEk");
 const RandevuTanimi = require("./RandevuTanimi");
 const RandevuSlot = require("./RandevuSlot");
+const QuickAction = require("./QuickAction");
 
 // Models still to be converted
 // const Gorev = require('./Gorev');
@@ -261,4 +262,5 @@ module.exports = {
   KisiEk,
   RandevuTanimi,
   RandevuSlot,
+  QuickAction,
 };
