@@ -15,7 +15,13 @@ router.get(
   auth,
   yetkiKontrol("iletisim_goruntuleme"),
   async (req, res) => {
-    try {
+    const { referansId } = req.params;
+    if (!referansId || referansId === "undefined" || referansId === "null") {
+      return res.status(400).json({ msg: "Geçersiz referans ID" });
+    }
+    // ...existing code...
+  }
+);
       const telefonlar = await Telefon.find({
         referansId: req.params.referansId,
         referansTur: req.params.referansTur,

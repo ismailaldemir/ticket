@@ -33,21 +33,18 @@ router.get(
   auth,
   yetkiKontrol("sabit_tanimlar_goruntuleme"),
   async (req, res) => {
+    const { id } = req.params;
+    if (!id || id === "undefined" || id === "null") {
+      return res.status(400).json({ msg: "Geçersiz sabit tanım ID" });
+    }
     try {
-      const sabitTanim = await SabitTanim.findById(req.params.id);
-
+      const sabitTanim = await SabitTanim.findByPk(id);
       if (!sabitTanim) {
         return res.status(404).json({ msg: "Sabit tanım bulunamadı" });
       }
-
       res.json(sabitTanim);
     } catch (err) {
       logger.error("Sabit tanım getirilirken hata", { error: err.message });
-
-      if (err.kind === "ObjectId") {
-        return res.status(404).json({ msg: "Sabit tanım bulunamadı" });
-      }
-
       res.status(500).send("Sunucu hatası");
     }
   }

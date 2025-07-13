@@ -28,7 +28,13 @@ router.get(
   auth,
   yetkiKontrol("telefon_goruntuleme"),
   async (req, res) => {
-    try {
+    const { id } = req.params;
+    if (!id || id === "undefined" || id === "null") {
+      return res.status(400).json({ msg: "Geçersiz telefon ID" });
+    }
+    // ...existing code...
+  }
+);
       const telefon = await Telefon.findById(req.params.id);
 
       if (!telefon) {
@@ -131,32 +137,20 @@ router.put(
       const { telefonNumarasi, tur, aciklama, durumu } = req.body;
 
       // Telefon var mı kontrol et
-      let telefon = await Telefon.findById(req.params.id);
+      let telefon = await Telefon.findByPk(req.params.id);
       if (!telefon) {
         return res.status(404).json({ msg: "Telefon bulunamadı" });
       }
-
-      // Güncelleme verilerini hazırla
-      const updateData = {
+      await telefon.update({
         telefonNumarasi,
         tur,
         aciklama,
         durumu,
-      };
-
-      // Güncelle
-      telefon = await Telefon.findByIdAndUpdate(
-        req.params.id,
-        { $set: updateData },
-        { new: true }
-      );
-
+      });
       res.json(telefon);
     } catch (err) {
       logger.error("Telefon güncelleme hatası", { error: err.message });
-      if (err.kind === "ObjectId") {
-        return res.status(404).json({ msg: "Telefon bulunamadı" });
-      }
+      // Sequelize'da ObjectId hatası yok, sadeleştirildi
       res.status(500).json({ msg: "Sunucu hatası" });
     }
   }

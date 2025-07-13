@@ -15,9 +15,12 @@ const Kisi = require("../../models/Kisi");
 // @access  Özel
 router.get("/", auth, yetkiKontrol("subeler_goruntuleme"), async (req, res) => {
   try {
-    const subeler = await Sube.find()
-      .populate("organizasyon_id", ["ad"])
-      .sort({ ad: 1 });
+    const subeler = await Sube.findAll({
+      include: [
+        { model: Organizasyon, as: "organizasyon", attributes: ["ad"] },
+      ],
+      order: [["ad", "ASC"]],
+    });
     res.json(subeler);
   } catch (err) {
     logger.error("Şubeler getirilirken hata", { error: err.message });
@@ -34,9 +37,13 @@ router.get(
   yetkiKontrol("subeler_goruntuleme"),
   async (req, res) => {
     try {
-      const subeler = await Sube.find({ isActive: true })
-        .populate("organizasyon_id", ["ad"])
-        .sort({ ad: 1 });
+      const subeler = await Sube.findAll({
+        where: { isActive: true },
+        include: [
+          { model: Organizasyon, as: "organizasyon", attributes: ["ad"] },
+        ],
+        order: [["ad", "ASC"]],
+      });
       res.json(subeler);
     } catch (err) {
       logger.error("Aktif şubeler getirilirken hata", { error: err.message });
@@ -53,23 +60,27 @@ router.get(
   auth,
   yetkiKontrol("subeler_goruntuleme"),
   async (req, res) => {
+    const { organizasyon_id } = req.params;
+    if (
+      !organizasyon_id ||
+      organizasyon_id === "undefined" ||
+      organizasyon_id === "null"
+    ) {
+      return res.status(400).json({ msg: "Geçersiz organizasyon ID" });
+    }
     try {
-      const subeler = await Sube.find({
-        organizasyon_id: req.params.organizasyon_id,
-        isActive: true,
-      })
-        .populate("organizasyon_id", ["ad"])
-        .sort({ ad: 1 });
+      const subeler = await Sube.findAll({
+        where: { organizasyon_id: organizasyon_id, isActive: true },
+        include: [
+          { model: Organizasyon, as: "organizasyon", attributes: ["ad"] },
+        ],
+        order: [["ad", "ASC"]],
+      });
       res.json(subeler);
     } catch (err) {
       logger.error("Organizasyona göre şubeler getirilirken hata", {
         error: err.message,
       });
-
-      if (err.kind === "ObjectId") {
-        return res.status(404).json({ msg: "Organizasyon bulunamadı" });
-      }
-
       res.status(500).send("Sunucu hatası");
     }
   }
@@ -83,11 +94,16 @@ router.get(
   auth,
   yetkiKontrol("subeler_goruntuleme"),
   async (req, res) => {
+    const { id } = req.params;
+    if (!id || id === "undefined" || id === "null") {
+      return res.status(400).json({ msg: "Geçersiz şube ID" });
+    }
     try {
-      const sube = await Sube.findById(req.params.id).populate(
-        "organizasyon_id",
-        ["ad"]
-      );
+      const sube = await Sube.findByPk(id, {
+        include: [
+          { model: Organizasyon, as: "organizasyon", attributes: ["ad"] },
+        ],
+      });
 
       if (!sube) {
         return res.status(404).json({ msg: "Şube bulunamadı" });
@@ -96,11 +112,6 @@ router.get(
       res.json(sube);
     } catch (err) {
       logger.error("Şube getirilirken hata", { error: err.message });
-
-      if (err.kind === "ObjectId") {
-        return res.status(404).json({ msg: "Şube bulunamadı" });
-      }
-
       res.status(500).send("Sunucu hatası");
     }
   }
@@ -151,13 +162,12 @@ router.post(
         isActive: isActive !== undefined ? isActive : true,
       });
 
-      await sube.save();
-
-      // İlişkilendirmeyi otomatik yapalım
-      const populatedSube = await Sube.findById(sube._id).populate(
-        "organizasyon_id",
-        ["ad"]
-      );
+      // Fetch the created sube with its organization
+      const populatedSube = await Sube.findByPk(sube.id, {
+        include: [
+          { model: Organizasyon, as: "organizasyon", attributes: ["ad"] },
+        ],
+      });
       res.json(populatedSube);
     } catch (err) {
       logger.error("Şube eklenirken hata", { error: err.message });
@@ -191,16 +201,13 @@ router.put(
     if (isActive !== undefined) subeGuncelleme.isActive = isActive;
     try {
       // Şube var mı kontrolü
-      let sube = await Sube.findById(req.params.id);
+      let sube = await Sube.findByPk(req.params.id);
       if (!sube) {
         return res.status(404).json({ msg: "Şube bulunamadı" });
       }
       // Organizasyon değişiyorsa, organizasyon var mı kontrolü
-      if (
-        organizasyon_id &&
-        organizasyon_id !== sube.organizasyon_id.toString()
-      ) {
-        const organizasyon = await Organizasyon.findById(organizasyon_id);
+      if (organizasyon_id && organizasyon_id !== String(sube.organizasyon_id)) {
+        const organizasyon = await Organizasyon.findByPk(organizasyon_id);
         if (!organizasyon) {
           return res
             .status(404)
@@ -210,27 +217,26 @@ router.put(
       // Aynı isimde başka bir şube var mı kontrol et (isim veya organizasyon değişiyorsa)
       if (
         (ad && ad !== sube.ad) ||
-        (organizasyon_id && organizasyon_id !== sube.organizasyon_id.toString())
+        (organizasyon_id && organizasyon_id !== String(sube.organizasyon_id))
       ) {
-        const checkOrganizasyonId = organizasyon_id || sube.organizasyon_id;
         const existingSube = await Sube.findOne({
-          ad,
-          organizasyon_id: checkOrganizasyonId,
-          _id: { $ne: req.params.id },
+          where: { ad, organizasyon_id },
         });
-        if (existingSube) {
+        if (existingSube && existingSube.id !== sube.id) {
           return res
             .status(400)
             .json({ msg: "Bu isimde bir şube bu organizasyonda zaten mevcut" });
         }
       }
       // Güncelleme
-      sube = await Sube.findByIdAndUpdate(
-        req.params.id,
-        { $set: subeGuncelleme },
-        { new: true }
-      ).populate("organizasyon_id", ["ad"]);
-      res.json(sube);
+      await sube.update(subeGuncelleme);
+      // Fetch updated with organization
+      const updatedSube = await Sube.findByPk(sube.id, {
+        include: [
+          { model: Organizasyon, as: "organizasyon", attributes: ["ad"] },
+        ],
+      });
+      res.json(updatedSube);
     } catch (err) {
       logger.error("Şube güncellenirken hata", { error: err.message });
       res.status(500).send("Sunucu hatası");
@@ -243,15 +249,13 @@ router.put(
 router.delete("/:id", auth, yetkiKontrol("subeler_silme"), async (req, res) => {
   try {
     // Şube var mı kontrolü
-    const sube = await Sube.findById(req.params.id);
-
+    const sube = await Sube.findByPk(req.params.id);
     if (!sube) {
       return res.status(404).json({ msg: "Şube bulunamadı" });
     }
 
     // Şubeye bağlı kişiler var mı kontrolü
-    const kisiler = await Kisi.countDocuments({ sube_id: req.params.id });
-
+    const kisiler = await Kisi.count({ where: { sube_id: req.params.id } });
     if (kisiler > 0) {
       return res.status(400).json({
         msg: "Bu şube silinemiyor, çünkü bu şubeye ait kişiler var",
@@ -260,15 +264,10 @@ router.delete("/:id", auth, yetkiKontrol("subeler_silme"), async (req, res) => {
     }
 
     // Şubeyi sil
-    await sube.remove();
+    await sube.destroy();
     res.json({ msg: "Şube silindi" });
   } catch (err) {
     logger.error("Şube silinirken hata", { error: err.message });
-
-    if (err.kind === "ObjectId") {
-      return res.status(404).json({ msg: "Şube bulunamadı" });
-    }
-
     res.status(500).send("Sunucu hatası");
   }
 });
@@ -283,30 +282,15 @@ router.post(
   async (req, res) => {
     try {
       const { ids } = req.body;
-
       if (!ids || !Array.isArray(ids) || ids.length === 0) {
         return res
           .status(400)
           .json({ msg: "Silinecek ID listesi geçerli değil" });
       }
 
-      // Şubelere bağlı kasaları kontrol et
+      // Şubelere bağlı kişileri kontrol et
       for (const id of ids) {
-        const kasaCount = await mongoose
-          .model("kasa")
-          .countDocuments({ sube_id: id });
-        if (kasaCount > 0) {
-          return res.status(400).json({
-            msg: `Seçili şubelere bağlı kasalar var. Önce bu kasaları silmeniz gerekiyor.`,
-            subeId: id,
-            count: kasaCount,
-          });
-        }
-
-        // Şubelere bağlı kişileri kontrol et
-        const kisiCount = await mongoose
-          .model("kisi")
-          .countDocuments({ sube_id: id });
+        const kisiCount = await Kisi.count({ where: { sube_id: id } });
         if (kisiCount > 0) {
           return res.status(400).json({
             msg: `Seçili şubelere bağlı kişiler var. Önce bu şubelerdeki kişileri başka şubelere taşımalısınız.`,
@@ -317,15 +301,14 @@ router.post(
       }
 
       // Toplu silme işlemi için
-      const result = await Sube.deleteMany({ _id: { $in: ids } });
-
-      if (result.deletedCount === 0) {
+      const deletedCount = await Sube.destroy({ where: { id: ids } });
+      if (deletedCount === 0) {
         return res.status(404).json({ msg: "Silinecek şube bulunamadı" });
       }
 
       res.json({
-        msg: `${result.deletedCount} adet şube silindi`,
-        count: result.deletedCount,
+        msg: `${deletedCount} adet şube silindi`,
+        count: deletedCount,
       });
     } catch (err) {
       logger.error("Birden fazla şube silinirken hata", { error: err.message });

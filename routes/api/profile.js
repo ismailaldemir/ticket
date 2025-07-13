@@ -11,21 +11,24 @@ const User = require("../../models/User");
 router.get("/me", auth, async (req, res) => {
   try {
     // Kullanıcıyı roller ve rollerin yetkileriyle birlikte eksiksiz çek
-    const user = await User.findByPk(req.user.id, {
-      attributes: { exclude: ["password"] },
-      include: [
-        {
-          association: "roller",
-          attributes: ["id", "ad", "aciklama", "isAdmin"],
-          include: [
-            {
-              association: "yetkiler",
-              attributes: ["kod", "ad", "modul", "islem"],
-            },
-          ],
-        },
-      ],
-    });
+    const user = await User.findOne(
+      { where: { id: req.user.id } },
+      {
+        attributes: { exclude: ["password"] },
+        include: [
+          {
+            association: "roller",
+            attributes: ["id", "ad", "aciklama", "isAdmin"],
+            include: [
+              {
+                association: "yetkiler",
+                attributes: ["kod", "ad", "modul", "islem"],
+              },
+            ],
+          },
+        ],
+      }
+    );
 
     if (!user) {
       return res

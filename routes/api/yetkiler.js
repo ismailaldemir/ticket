@@ -19,9 +19,16 @@ router.get("/moduller", auth, async (req, res) => {
       "Yetkiler/moduller endpoint çağrıldı. Kullanıcı ID:",
       req.user.id
     );
-    const moduller = await Yetki.distinct("modul");
-    console.log(`${moduller.length} adet modül bulundu.`);
-    res.json(moduller);
+    // Sequelize'de distinct için findAll + group kullanılır
+    const moduller = await Yetki.findAll({
+      attributes: [
+        [Yetki.sequelize.fn("DISTINCT", Yetki.sequelize.col("modul")), "modul"],
+      ],
+      raw: true,
+    });
+    const modulList = moduller.map((m) => m.modul);
+    console.log(`${modulList.length} adet modül bulundu.`);
+    res.json(modulList);
   } catch (err) {
     console.error("Modüller getirilirken hata:", err.message);
     res.status(500).json({ msg: "Sunucu hatası", detail: err.message });
@@ -61,19 +68,18 @@ router.get(
   auth,
   yetkiKontrol("yetkiler_goruntuleme"),
   async (req, res) => {
+    const { id } = req.params;
+    if (!id || id === "undefined" || id === "null") {
+      return res.status(400).json({ msg: "Geçersiz yetki ID" });
+    }
     try {
-      const yetki = await Yetki.findByPk(req.params.id);
-
+      const yetki = await Yetki.findByPk(id);
       if (!yetki) {
         return res.status(404).json({ msg: "Yetki bulunamadı" });
       }
-
       res.json(yetki);
     } catch (err) {
       console.error(err.message);
-      if (err.kind === "ObjectId") {
-        return res.status(404).json({ msg: "Yetki bulunamadı" });
-      }
       res.status(500).send("Sunucu hatası");
     }
   }
@@ -116,7 +122,7 @@ router.post(
       }
 
       // Yeni yetki oluştur
-      const yeniYetki = new Yetki({
+      const yeniYetki = await Yetki.create({
         kod,
         ad,
         aciklama,
@@ -125,7 +131,6 @@ router.post(
         isActive: isActive !== undefined ? isActive : true,
       });
 
-      await yeniYetki.save();
       res.json(yeniYetki);
     } catch (err) {
       console.error(err.message);

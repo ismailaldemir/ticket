@@ -126,8 +126,9 @@ router.get(
   auth,
   yetkiKontrol("organizasyonlar_goruntuleme"),
   async (req, res) => {
+    const { id } = req.params;
     try {
-      const organizasyon = await Organizasyon.findByPk(req.params.id, {
+      const organizasyon = await Organizasyon.findByPk(id, {
         include: [
           { model: Sube, as: "subeler", attributes: ["id", "ad", "isActive"] },
           {
@@ -153,11 +154,6 @@ router.get(
       res.json(organizasyon);
     } catch (err) {
       logger.error("Organizasyon getirilirken hata", { error: err.message });
-
-      if (err.kind === "ObjectId") {
-        return res.status(404).json({ msg: "Organizasyon bulunamadı" });
-      }
-
       res.status(500).send("Sunucu hatası");
     }
   }

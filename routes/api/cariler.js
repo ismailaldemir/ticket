@@ -47,10 +47,13 @@ router.get(
   yetkiKontrol("cariler_goruntuleme"),
   async (req, res) => {
     try {
-      const cariler = await Cari.find({
-        cariTur: req.params.tur,
-        isActive: true,
-      }).sort({ cariAd: 1 });
+      const cariler = await Cari.findAll({
+        where: {
+          cariTur: req.params.tur,
+          isActive: true,
+        },
+        order: [["cariAd", "ASC"]],
+      });
       res.json(cariler);
     } catch (err) {
       logger.error("Cariler getirilirken hata", { error: err.message });
@@ -67,21 +70,18 @@ router.get(
   auth,
   yetkiKontrol("cariler_goruntuleme"),
   async (req, res) => {
+    const { id } = req.params;
+    if (!id || id === "undefined" || id === "null") {
+      return res.status(400).json({ msg: "Geçersiz cari ID" });
+    }
     try {
-      const cari = await Cari.findById(req.params.id);
-
+      const cari = await Cari.findByPk(id);
       if (!cari) {
         return res.status(404).json({ msg: "Cari bulunamadı" });
       }
-
       res.json(cari);
     } catch (err) {
       logger.error("Cari getirilirken hata", { error: err.message });
-
-      if (err.kind === "ObjectId") {
-        return res.status(404).json({ msg: "Cari bulunamadı" });
-      }
-
       res.status(500).send("Sunucu hatası");
     }
   }

@@ -285,7 +285,6 @@ const OrganizasyonForm = () => {
       toast.error("Lütfen formdaki hataları düzeltin");
       return;
     }
-
     try {
       if (id) {
         await dispatch(
@@ -293,18 +292,13 @@ const OrganizasyonForm = () => {
         ).unwrap();
         toast.success("Organizasyon başarıyla güncellendi");
       } else {
-        const result = await dispatch(addOrganizasyon(formData)).unwrap();
+        await dispatch(addOrganizasyon(formData)).unwrap();
         toast.success("Organizasyon başarıyla oluşturuldu");
-        // Yeni oluşturulan organizasyonun sayfasına yönlendir
-        navigate(`/organizasyonlar/duzenle/${result._id}`);
-        return; // Return ile fonksiyonun devamının çalıştırılmamasını sağlıyoruz
       }
-
+      // Kayıt sonrası organizasyon listesine yönlendir
       navigate("/organizasyonlar");
     } catch (error) {
-      toast.error(
-        error?.message || "Organizasyon kaydedilirken bir hata oluştu"
-      );
+      toast.error(error?.msg || "Organizasyon kaydedilirken bir hata oluştu");
       console.error("Form gönderim hatası:", error);
     }
   };
@@ -329,7 +323,10 @@ const OrganizasyonForm = () => {
         <Alert severity="error" sx={{ mb: 3 }}>
           {typeof error === "string"
             ? error
-            : error?.msg || error?.message || JSON.stringify(error) || "Bir hata oluştu"}
+            : error?.msg ||
+              error?.message ||
+              JSON.stringify(error) ||
+              "Bir hata oluştu"}
         </Alert>
       )}
 

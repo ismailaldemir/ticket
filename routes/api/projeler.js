@@ -38,7 +38,13 @@ router.get(
   auth,
   yetkiKontrol("projeler_goruntuleme"),
   async (req, res) => {
-    try {
+    const { id } = req.params;
+    if (!id || id === "undefined" || id === "null") {
+      return res.status(400).json({ msg: "Geçersiz proje ID" });
+    }
+    // ...existing code...
+  }
+);
       const proje = await Proje.findById(req.params.id).populate(
         "sorumluKisi_id",
         ["ad", "soyad"]

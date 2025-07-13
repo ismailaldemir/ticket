@@ -66,11 +66,12 @@ router.get(
   yetkiKontrol("roller_goruntuleme"),
   async (req, res) => {
     try {
-      if (!req.params.id || req.params.id === "undefined") {
-        logger.warn("Geçersiz rol ID", { roleId: req.params.id });
+      const { id } = req.params;
+      if (!id || id === "undefined" || id === "null") {
+        logger.warn("Geçersiz rol ID", { roleId: id });
         return res.status(400).json({ msg: "Geçersiz rol ID" });
       }
-      const rol = await Rol.findByPk(req.params.id, {
+      const rol = await Rol.findByPk(id, {
         include: [
           {
             model: Yetki,
@@ -79,12 +80,10 @@ router.get(
           },
         ],
       });
-
       if (!rol) {
-        logger.warn("Rol bulunamadı", { roleId: req.params.id });
+        logger.warn("Rol bulunamadı", { roleId: id });
         return res.status(404).json({ msg: "Rol bulunamadı" });
       }
-
       res.json(rol);
     } catch (err) {
       logger.error("Rol getirme hatası", { error: err.message });
@@ -98,11 +97,7 @@ router.get(
 // @access  Özel
 router.post(
   "/",
-  [
-    auth,
-    yetkiKontrol("roller_ekleme"),
-    [check("ad", "Rol adı gereklidir").not().isEmpty()],
-  ],
+  [auth, yetkiKontrol("roller_ekleme")],
   validationErrorHandler,
   async (req, res) => {
     try {
@@ -161,11 +156,7 @@ router.post(
 // @access  Özel
 router.put(
   "/:id",
-  [
-    auth,
-    yetkiKontrol("roller_duzenleme"),
-    [check("ad", "Rol adı gereklidir").not().isEmpty()],
-  ],
+  [auth, yetkiKontrol("roller_duzenleme")],
   validationErrorHandler,
   async (req, res) => {
     try {

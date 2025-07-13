@@ -13,7 +13,7 @@ const Adres = require("../../models/Adres");
 // @access  Özel
 router.get("/", auth, yetkiKontrol("adres_goruntuleme"), async (req, res) => {
   try {
-    const adresler = await Adres.find().sort({ kayitTarihi: -1 });
+    const adresler = await Adres.findAll({ order: [["createdAt", "DESC"]] });
     res.json(adresler);
   } catch (err) {
     logger.error("Tüm adresler getirilirken hata", { error: err.message });
@@ -29,8 +29,14 @@ router.get(
   auth,
   yetkiKontrol("adres_goruntuleme"),
   async (req, res) => {
-    try {
-      const adres = await Adres.findById(req.params.id);
+    const { id } = req.params;
+    if (!id || id === "undefined" || id === "null") {
+      return res.status(400).json({ msg: "Geçersiz adres ID" });
+    }
+    // ...existing code...
+  }
+);
+      const adres = await Adres.findByPk(req.params.id);
 
       if (!adres) {
         return res.status(404).json({ msg: "Adres bulunamadı" });
@@ -56,10 +62,13 @@ router.get(
   yetkiKontrol("adres_goruntuleme"),
   async (req, res) => {
     try {
-      const adresler = await Adres.find({
-        referans_turu: req.params.tip,
-        referans_id: req.params.id,
-      }).sort({ kayitTarihi: -1 });
+      const adresler = await Adres.findAll({
+        where: {
+          referansTur: req.params.tip,
+          referansId: req.params.id,
+        },
+        order: [["createdAt", "DESC"]],
+      });
 
       res.json(adresler);
     } catch (err) {
@@ -119,7 +128,7 @@ router.post(
         isActive: isActive !== undefined ? isActive : true,
       });
 
-      const adres = await yeniAdres.save();
+      const adres = await Adres.create(yeniAdres);
       res.json(adres);
     } catch (err) {
       logger.error("Adres eklenirken hata", { error: err.message });
@@ -174,18 +183,14 @@ router.put(
 
     try {
       // Adres var mı kontrol et
-      let adres = await Adres.findById(req.params.id);
+      let adres = await Adres.findByPk(req.params.id);
 
       if (!adres) {
         return res.status(404).json({ msg: "Adres bulunamadı" });
       }
 
       // Güncelle
-      adres = await Adres.findByIdAndUpdate(
-        req.params.id,
-        { $set: adresGuncelleme },
-        { new: true }
-      );
+      await adres.update(adresGuncelleme);
 
       res.json(adres);
     } catch (err) {
@@ -203,13 +208,13 @@ router.put(
 // @access  Özel
 router.delete("/:id", auth, yetkiKontrol("adres_silme"), async (req, res) => {
   try {
-    const adres = await Adres.findById(req.params.id);
+    const adres = await Adres.findByPk(req.params.id);
 
     if (!adres) {
       return res.status(404).json({ msg: "Adres bulunamadı" });
     }
 
-    await adres.remove();
+    await adres.destroy();
     res.json({ msg: "Adres silindi" });
   } catch (err) {
     logger.error("Adres silinirken hata", { error: err.message });
