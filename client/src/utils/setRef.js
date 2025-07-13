@@ -9,12 +9,16 @@ const setRef = (ref, value) => {
 
   if (typeof ref === "function") {
     // Fonksiyon ref'leri için callback olarak çağır
-    // ama bunu setTimeout ile asenkron yap ki render döngüsünü engelleme
+    // Eğer aynı değer tekrar atanıyorsa, tekrar çağırma
+    let lastValue;
+    if (ref.__lastValue !== undefined && ref.__lastValue === value) return;
+    ref.__lastValue = value;
     const callRef = () => ref(value);
     setTimeout(callRef, 0);
   } else {
     try {
-      // Nesne ref'leri için direkt ata
+      // Nesne ref'leri için, aynı değer ise tekrar atama yapma
+      if (ref.current === value) return;
       ref.current = value;
     } catch (error) {
       Logger.error("Ref değeri atanırken hata oluştu", { error });

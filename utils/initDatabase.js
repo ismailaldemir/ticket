@@ -1,6 +1,4 @@
-const User = require("../models/User");
-const Rol = require("../models/Rol");
-const Yetki = require("../models/Yetki");
+const { User, Rol, Yetki } = require("../models");
 const bcrypt = require("bcryptjs");
 const config = require("config");
 const fs = require("fs");

@@ -60,6 +60,7 @@ import ExportModal from "../../components/common/ExportModal";
 import { formatDate, formatBoolean } from "../../utils/exportService";
 import UserAvatar from "../../components/user/UserAvatar";
 import Logger from "../../utils/logger";
+import config from "../../config";
 
 const UserList = () => {
   const dispatch = useDispatch();
@@ -173,14 +174,18 @@ const UserList = () => {
   // Yetki kontrolü için ayrı bir useEffect - currentUser değiştiğinde çalışacak
   useEffect(() => {
     if (currentUser) {
-      // Kullanıcı admin mi kontrolü (hem eski, hem yeni, hem de sadece ID dizisi için)
+      // Superadmin e-posta kontrolü
       let isAdmin = false;
-
-      // 1. Eski şema
-      if (currentUser.role === "admin") {
+      if (
+        config?.app?.adminEmail &&
+        currentUser.email === config.app.adminEmail
+      ) {
         isAdmin = true;
       }
-
+      // 1. Eski şema
+      if (!isAdmin && currentUser.role === "admin") {
+        isAdmin = true;
+      }
       // 2. Yeni şema: roller objesi varsa
       if (!isAdmin && Array.isArray(currentUser.roller)) {
         isAdmin = currentUser.roller.some(
@@ -189,7 +194,6 @@ const UserList = () => {
             (typeof rol === "string" && rol === "admin")
         );
       }
-
       // 3. Sadece ObjectId dizisi varsa, roller state'inden kontrol et
       if (
         !isAdmin &&
@@ -198,11 +202,10 @@ const UserList = () => {
         allRoles.length > 0
       ) {
         isAdmin = currentUser.roller.some((rolId) => {
-          const rolObj = allRoles.find((r) => r._id === rolId);
+          const rolObj = allRoles.find((r) => r.id === rolId);
           return rolObj && rolObj.isAdmin === true;
         });
       }
-
       if (!isAdmin) {
         Logger.warn("Kullanıcı admin değil, dashboard'a yönlendiriliyor");
         toast.error("Bu sayfaya erişim izniniz yok");
@@ -232,7 +235,7 @@ const UserList = () => {
   // Silme işlemleri
   const handleDeleteClick = (user) => {
     // Kendini silmesini engellemek için kontrol
-    if (user._id === currentUser?.id) {
+    if (user.id === currentUser?.id) {
       toast.warning("Kendi hesabınızı buradan silemezsiniz");
       return;
     }
@@ -244,7 +247,7 @@ const UserList = () => {
   const handleDeleteConfirm = async () => {
     if (userToDelete) {
       try {
-        await dispatch(deleteUser(userToDelete._id)).unwrap();
+        await dispatch(deleteUser(userToDelete.id)).unwrap();
       } catch (error) {
         if (!error?.msg) {
           toast.error("Kullanıcı silinirken bir hata oluştu");
@@ -287,8 +290,8 @@ const UserList = () => {
     if (event.target.checked) {
       // Kendini hariç tüm kullanıcıları seç
       const newSelected = filteredUsers
-        .filter((user) => user._id !== currentUser?.id)
-        .map((user) => user._id);
+        .filter((user) => user.id !== currentUser?.id)
+        .map((user) => user.id);
       setSelected(newSelected);
       return;
     }
@@ -423,17 +426,18 @@ const UserList = () => {
 
   const renderUserRow = (user, index, isItemSelected, isCurrentUser) => {
     const delay = calculateAnimationDelay(index, visibleUsers.length);
-
+    // Benzersiz key için: id > index
+    const rowKey = user.id || `user-row-${index}`;
     return (
       <Grow
         in={contentLoaded}
-        key={user._id}
+        key={rowKey}
         timeout={{ enter: 300 + delay }}
         style={{ transformOrigin: "0 0 0" }}
       >
         <TableRow
           hover
-          onClick={(event) => handleClick(event, user._id)}
+          onClick={(event) => handleClick(event, user.id)}
           role="checkbox"
           aria-checked={isItemSelected}
           selected={isItemSelected}
@@ -454,9 +458,9 @@ const UserList = () => {
               checked={isItemSelected}
               disabled={isCurrentUser}
               inputProps={{
-                "aria-labelledby": `user-${user._id}`,
+                "aria-labelledby": `user-${user.id}`,
               }}
-              onClick={(e) => handleCheckboxClick(e, user._id)}
+              onClick={(e) => handleCheckboxClick(e, user.id)}
             />
           </TableCell>
           <TableCell>
@@ -506,7 +510,7 @@ const UserList = () => {
                 <IconButton
                   color="primary"
                   component={Link}
-                  to={`/users/edit/${user._id}`}
+                  to={`/users/edit/${user.id}`}
                   size="small"
                   onClick={(e) => e.stopPropagation()}
                 >
@@ -735,8 +739,8 @@ const UserList = () => {
               <TableBody>
                 {visibleUsers.length > 0 ? (
                   visibleUsers.map((user, index) => {
-                    const isItemSelected = isSelected(user._id);
-                    const isCurrentUser = user._id === currentUser?.id;
+                    const isItemSelected = isSelected(user.id);
+                    const isCurrentUser = user.id === currentUser?.id;
                     return renderUserRow(
                       user,
                       index,

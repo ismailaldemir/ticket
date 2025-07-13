@@ -76,7 +76,7 @@ const RolSecimBolumu = ({ userId, atanmisRoller = [], onRollerChange }) => {
         renderValue={(selected) => {
           const secilenRolAdlari = selected
             .map((rolId) => {
-              const rol = roller.find((r) => r._id === rolId);
+              const rol = roller.find((r) => (r.id || r._id) === rolId);
               return rol ? rol.ad : "";
             })
             .filter((ad) => ad)
@@ -86,8 +86,8 @@ const RolSecimBolumu = ({ userId, atanmisRoller = [], onRollerChange }) => {
       >
         {roller.map((rol) => (
           <MenuItem
-            key={rol._id}
-            value={rol._id}
+            key={rol.id || rol._id}
+            value={rol.id || rol._id}
             disabled={rol.isAdmin && rol.ad === "Admin"}
           >
             {rol.ad}
@@ -165,33 +165,37 @@ const UserForm = () => {
   }, [id, dispatch]);
 
   useEffect(() => {
-    if (currentUser && id) {
-      const newFormData = {
-        name: currentUser.name || "",
-        email: currentUser.email || "",
-        role: currentUser.role || "user",
-        password: "",
-        confirmPassword: "",
-        active: currentUser.active !== undefined ? currentUser.active : true,
-        roller: currentUser.roller || [],
-      };
+    if (!currentUser || !id) return;
 
-      if (
-        formData.name !== newFormData.name ||
-        formData.email !== newFormData.email ||
-        formData.role !== newFormData.role ||
-        formData.active !== newFormData.active ||
-        JSON.stringify(formData.roller) !== JSON.stringify(newFormData.roller)
-      ) {
-        Logger.debug("Form verisi güncelleniyor", { currentUser });
-        setFormData(newFormData);
+    // Form verisi değişmediyse tekrar setState çağrısı yapma
+    const newFormData = {
+      name: currentUser.name || "",
+      email: currentUser.email || "",
+      role: currentUser.role || "user",
+      password: "",
+      confirmPassword: "",
+      active: currentUser.active !== undefined ? currentUser.active : true,
+      roller: currentUser.roller || [],
+    };
 
-        if (currentUser.avatar) {
-          setAvatarPreview(currentUser.avatar);
-        }
+    let shouldUpdateForm = false;
+    for (const key of Object.keys(newFormData)) {
+      if (formData[key] !== newFormData[key]) {
+        shouldUpdateForm = true;
+        break;
       }
     }
-  }, [currentUser, id, formData]);
+    if (shouldUpdateForm) {
+      Logger.debug("Form verisi güncelleniyor", { currentUser });
+      setFormData(newFormData);
+    }
+
+    if (currentUser.avatar !== avatarPreview) {
+      setAvatarPreview(currentUser.avatar || null);
+    }
+    // Sadece currentUser ve id değiştiğinde tetiklenmeli, formData ve avatarPreview dependency array'e eklenmeli
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentUser, id, formData, avatarPreview]);
 
   const validateForm = () => {
     const errors = {};
@@ -382,7 +386,10 @@ const UserForm = () => {
           <Alert severity="error" sx={{ mb: 3 }}>
             {typeof error === "string"
               ? error
-              : error?.msg || error?.message || JSON.stringify(error) || "Bir hata oluştu"}
+              : error?.msg ||
+                error?.message ||
+                JSON.stringify(error) ||
+                "Bir hata oluştu"}
           </Alert>
         )}
 

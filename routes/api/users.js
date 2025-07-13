@@ -71,8 +71,9 @@ router.post(
     const { name, email, password, role } = req.body;
 
     try {
-      // Kullanıcı zaten var mı kontrol et
-      let user = await User.findOne({ email });
+      // E-posta adresini küçük harfe çevirerek kontrol et
+      const normalizedEmail = email.toLowerCase();
+      let user = await User.findOne({ where: { email: normalizedEmail } });
 
       if (user) {
         return res
@@ -81,19 +82,12 @@ router.post(
       }
 
       // Yeni kullanıcı örneği oluştur
-      user = new User({
+      user = await User.create({
         name,
-        email,
-        password,
+        email: normalizedEmail,
+        password: await bcrypt.hash(password, await bcrypt.genSalt(10)),
         role: role || "user",
       });
-
-      // Şifreyi hashle
-      const salt = await bcrypt.genSalt(10);
-      user.password = await bcrypt.hash(password, salt);
-
-      // Kullanıcıyı kaydet
-      await user.save();
 
       // JWT oluştur
       const payload = {
@@ -208,9 +202,14 @@ router.put("/:id", [auth, upload.single("avatar")], async (req, res) => {
   try {
     const userId = req.params.id;
 
-    // Kullanıcı sadece kendi hesabını veya admin ise herhangi bir hesabı güncelleyebilir
-    if (req.user.id !== userId && req.user.role !== "admin") {
-      // Dosya yüklendiyse sil
+    // RBAC: Admin veya kendi hesabı ya da users_duzenleme yetkisi olanlar güncelleyebilir
+    const isSelf = req.user.id === userId;
+    const isAdmin = req.user.role === "admin";
+    const hasEditPermission =
+      req.permissions &&
+      Array.isArray(req.permissions) &&
+      req.permissions.includes("users_duzenleme");
+    if (!isSelf && !isAdmin && !hasEditPermission) {
       if (req.file) {
         fs.unlinkSync(req.file.path);
       }
@@ -219,9 +218,7 @@ router.put("/:id", [auth, upload.single("avatar")], async (req, res) => {
 
     // Güncellenecek kullanıcıyı bul
     let user = await User.findByPk(userId);
-
     if (!user) {
-      // Dosya yüklendiyse sil
       if (req.file) {
         fs.unlinkSync(req.file.path);
       }
@@ -234,10 +231,14 @@ router.put("/:id", [auth, upload.single("avatar")], async (req, res) => {
     // Kullanıcı bilgilerini güncelle
     if (name) user.name = name;
     if (email && email !== user.email) {
-      // E-posta değiştiyse ve başka birinin kullandığı mail mi diye kontrol et
-      const emailExists = await User.findOne({ email, _id: { $ne: userId } });
+      const normalizedEmail = email.toLowerCase();
+      const emailExists = await User.findOne({
+        where: {
+          email: normalizedEmail,
+          id: { [Op.ne]: userId },
+        },
+      });
       if (emailExists) {
-        // Dosya yüklendiyse sil
         if (req.file) {
           fs.unlinkSync(req.file.path);
         }
@@ -245,57 +246,46 @@ router.put("/:id", [auth, upload.single("avatar")], async (req, res) => {
           .status(400)
           .json({ msg: "Bu e-posta adresi zaten kullanımda" });
       }
-      user.email = email;
+      user.email = normalizedEmail;
     }
 
-    // Active alanını güncelle
     if (active !== undefined) {
       user.active = active === "true" || active === true;
     }
 
-    // Role alanını güncelle (sadece admin yapabilir)
+    // Sadece admin rolü değiştirebilir
     if (role && req.user.role === "admin") {
       user.role = role;
     }
 
-    // Eğer yeni resim yüklendiyse
     if (req.file) {
-      // Eski resmi sil (varsa ve uploads/avatars/ içindeyse)
       if (user.avatar && user.avatar.startsWith("/uploads/avatars/")) {
         const oldImagePath = path.join(__dirname, "../../", user.avatar);
         if (fs.existsSync(oldImagePath)) {
           fs.unlinkSync(oldImagePath);
         }
       }
-
-      // Yeni resmi kaydet
       user.avatar = `/uploads/avatars/${req.file.filename}`;
     }
 
     // Şifre değiştirme işlemi
     if (newPassword && currentPassword) {
-      // Mevcut şifre kontrolü
       const isMatch = await bcrypt.compare(currentPassword, user.password);
-
       if (!isMatch) {
-        // Dosya yüklendiyse sil
         if (req.file) {
           fs.unlinkSync(req.file.path);
         }
         return res.status(400).json({ msg: "Mevcut şifre hatalı" });
       }
-
-      // Yeni şifreyi hashle
       const salt = await bcrypt.genSalt(10);
       user.password = await bcrypt.hash(newPassword, salt);
     }
 
-    // Kullanıcıyı kaydet
     await user.save();
 
-    // Şifre hariç kullanıcı bilgilerini döndür
+    // Sequelize'da _id yok, id ile dönülmeli
     const userResponse = {
-      _id: user._id,
+      id: user.id,
       name: user.name,
       email: user.email,
       role: user.role,
@@ -303,16 +293,12 @@ router.put("/:id", [auth, upload.single("avatar")], async (req, res) => {
       avatar: user.avatar,
       date: user.date,
     };
-
     res.json(userResponse);
   } catch (err) {
     console.error(err.message);
-
-    // Dosya yüklendiyse hata durumunda sil
     if (req.file) {
       fs.unlinkSync(req.file.path);
     }
-
     res.status(500).send("Sunucu hatası");
   }
 });
@@ -459,27 +445,28 @@ router.get("/:id/permissions", auth, async (req, res) => {
     const permissions = [];
     let isAdmin = false;
 
-    user.roller.forEach((rol) => {
-      if (rol.isAdmin) {
-        isAdmin = true;
-      }
-
-      if (rol.yetkiler && Array.isArray(rol.yetkiler)) {
-        rol.yetkiler.forEach((yetki) => {
-          if (!permissions.some((p) => p.kod === yetki.kod)) {
-            permissions.push({
-              kod: yetki.kod,
-              ad: yetki.ad,
-              modul: yetki.modul,
-              islem: yetki.islem,
-            });
-          }
-        });
-      }
-    });
+    if (user.roller && Array.isArray(user.roller)) {
+      user.roller.forEach((rol) => {
+        if (rol.isAdmin) {
+          isAdmin = true;
+        }
+        if (rol.yetkiler && Array.isArray(rol.yetkiler)) {
+          rol.yetkiler.forEach((yetki) => {
+            if (!permissions.some((p) => p.kod === yetki.kod)) {
+              permissions.push({
+                kod: yetki.kod,
+                ad: yetki.ad,
+                modul: yetki.modul,
+                islem: yetki.islem,
+              });
+            }
+          });
+        }
+      });
+    }
 
     res.json({
-      userId: user._id,
+      userId: user.id,
       isAdmin,
       permissions,
     });
@@ -522,33 +509,26 @@ router.delete("/:id", auth, async (req, res) => {
 // @access  Özel (Admin)
 router.post("/delete-many", auth, async (req, res) => {
   try {
-    // Sadece adminler silebilir
     if (req.user.role !== "admin") {
       return res.status(403).json({ msg: "Yetkiniz yok" });
     }
-
     const { ids } = req.body;
-
     if (!ids || !Array.isArray(ids) || ids.length === 0) {
       return res
         .status(400)
         .json({ msg: "Geçerli kullanıcı ID listesi sağlanmalıdır" });
     }
-
-    // Kullanıcının kendisini silmesini engelle
     if (ids.includes(req.user.id)) {
       return res.status(400).json({ msg: "Kendinizi silemezsiniz" });
     }
-
-    const result = await User.deleteMany({ _id: { $in: ids } });
-
-    if (result.deletedCount === 0) {
+    // Sequelize ile toplu silme
+    const result = await User.destroy({ where: { id: ids } });
+    if (result === 0) {
       return res.status(404).json({ msg: "Silinecek kullanıcı bulunamadı" });
     }
-
     res.json({
-      msg: `${result.deletedCount} kullanıcı silindi`,
-      count: result.deletedCount,
+      msg: `${result} kullanıcı silindi`,
+      count: result,
     });
   } catch (err) {
     console.error(err.message);
@@ -559,62 +539,54 @@ router.post("/delete-many", auth, async (req, res) => {
 // @route   POST api/users/add
 // @desc    Kullanıcı ekle (admin yetkisi)
 // @access  Özel (Admin)
-router.post("/add", [auth, upload.single("avatar")], async (req, res) => {
-  try {
-    // Sadece adminler ekleyebilir
-    if (req.user.role !== "admin") {
-      // Dosya yüklendiyse sil
-      if (req.file) {
-        fs.unlinkSync(req.file.path);
-      }
-      return res.status(403).json({ msg: "Yetkiniz yok" });
-    }
 
-    const { name, email, password, role, active } = req.body;
+router.post(
+  "/add",
+  [auth, yetkiKontrol("users_ekleme"), upload.single("avatar")],
+  async (req, res) => {
+    try {
+      const { name, email, password, role, active } = req.body;
 
-    // Kullanıcı zaten var mı kontrolü
-    let user = await User.findOne({ email });
-    if (user) {
-      // Dosya yüklendiyse sil
-      if (req.file) {
-        fs.unlinkSync(req.file.path);
+      // E-posta adresini küçük harfe çevirerek kontrol et
+      const normalizedEmail = email.toLowerCase();
+      let user = await User.findOne({ where: { email: normalizedEmail } });
+      if (user) {
+        // Dosya yüklendiyse sil
+        if (req.file) {
+          fs.unlinkSync(req.file.path);
+        }
+        return res.status(400).json({
+          msg: "Bu e-posta adresi zaten kullanımda",
+        });
       }
-      return res.status(400).json({
-        msg: "Bu e-posta adresi zaten kullanımda",
+
+      // Avatar yolu belirleme
+      const avatarPath = req.file
+        ? `/uploads/avatars/${req.file.filename}`
+        : null;
+
+      user = await User.create({
+        name,
+        email: normalizedEmail,
+        password,
+        role: role || "user",
+        active: active === "true" || active === true,
+        avatar: avatarPath,
       });
+
+      res.json(user);
+    } catch (err) {
+      console.error(err.message);
+
+      // Dosya yüklendiyse hata durumunda sil
+      if (req.file) {
+        fs.unlinkSync(req.file.path);
+      }
+
+      res.status(500).send("Sunucu hatası");
     }
-
-    // Avatar yolu belirleme
-    const avatarPath = req.file
-      ? `/uploads/avatars/${req.file.filename}`
-      : null;
-
-    user = new User({
-      name,
-      email,
-      password,
-      role: role || "user",
-      active: active === "true" || active === true,
-      avatar: avatarPath,
-    });
-
-    // Şifreyi hashle
-    const salt = await bcrypt.genSalt(10);
-    user.password = await bcrypt.hash(password, salt);
-
-    await user.save();
-    res.json(user);
-  } catch (err) {
-    console.error(err.message);
-
-    // Dosya yüklendiyse hata durumunda sil
-    if (req.file) {
-      fs.unlinkSync(req.file.path);
-    }
-
-    res.status(500).send("Sunucu hatası");
   }
-});
+);
 
 // @route   DELETE api/users/avatar/:id
 // @desc    Kullanıcı avatarını sil
