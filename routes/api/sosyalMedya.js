@@ -68,16 +68,17 @@ router.get("/referans/:referansTur/:referansId", auth, async (req, res) => {
       return res.status(400).json({ msg: "Geçersiz referans türü" });
     }
 
-    // Referans ID kontrolü
-    if (!mongoose.Types.ObjectId.isValid(referansId)) {
-      return res.status(400).json({ msg: "Geçersiz referans ID" });
-    }
-
-    const sosyalMedyalar = await SosyalMedya.find({
-      referansId: referansId,
-      referansTur: referansTur,
-      isActive: true,
-    }).sort({ tur: 1, createdAt: -1 });
+    const sosyalMedyalar = await SosyalMedya.findAll({
+      where: {
+        referansId: referansId,
+        referansTur: referansTur,
+        isActive: true,
+      },
+      order: [
+        ["tur", "ASC"],
+        ["createdAt", "DESC"],
+      ],
+    });
 
     res.json(sosyalMedyalar);
   } catch (err) {

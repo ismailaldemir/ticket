@@ -96,13 +96,9 @@ router.post(
     auth,
     yetkiKontrol("cariler_ekleme"),
     [check("cariAd", "Cari adı gereklidir").not().isEmpty()],
+    require("../../middleware/validationErrorHandler"),
   ],
   async (req, res) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({ errors: errors.array() });
-    }
-
     const {
       cariAd,
       aciklama,
@@ -166,8 +162,12 @@ router.post(
 // @access  Özel
 router.put(
   "/:id",
-  auth,
-  yetkiKontrol("cariler_guncelleme"),
+  [
+    auth,
+    yetkiKontrol("cariler_guncelleme"),
+    [check("cariAd", "Cari adı gereklidir").not().isEmpty()],
+    require("../../middleware/validationErrorHandler"),
+  ],
   async (req, res) => {
     const {
       cariAd,

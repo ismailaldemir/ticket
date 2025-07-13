@@ -19,14 +19,17 @@ router.get("/", auth, yetkiKontrol("uyeler_goruntuleme"), async (req, res) => {
       include: [
         {
           model: Kisi,
+          as: "kisi",
           attributes: ["ad", "soyad", "telefonNumarasi"],
         },
         {
           model: Sube,
+          as: "sube",
           attributes: ["ad"],
         },
         {
           model: UyeRol,
+          as: "uyeRol",
           attributes: ["ad"],
         },
       ],
@@ -49,11 +52,24 @@ router.get(
   yetkiKontrol("uyeler_goruntuleme"),
   async (req, res) => {
     try {
-      const uyeler = await Uye.find({ isActive: true })
-        .populate("kisi_id", ["ad", "soyad", "telefonNumarasi"])
-        .populate("sube_id", ["ad"])
-        .populate("uyeRol_id", ["ad"])
-        .sort({ kayitTarihi: -1 });
+      const uyeler = await Uye.findAll({
+        where: { isActive: true },
+        include: [
+          {
+            model: Kisi,
+            attributes: ["ad", "soyad", "telefonNumarasi"],
+          },
+          {
+            model: Sube,
+            attributes: ["ad"],
+          },
+          {
+            model: UyeRol,
+            attributes: ["ad"],
+          },
+        ],
+        order: [["kayitTarihi", "DESC"]],
+      });
       logger.info("Aktif üyeler getirildi", { count: uyeler.length });
       res.json(uyeler);
     } catch (err) {

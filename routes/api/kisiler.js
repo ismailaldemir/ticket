@@ -1,7 +1,8 @@
 const express = require("express");
 const router = express.Router();
 const auth = require("../../middleware/auth");
-const { check, validationResult } = require("express-validator");
+const { check } = require("express-validator");
+const validationErrorHandler = require("../../middleware/validationErrorHandler");
 const fs = require("fs");
 const path = require("path");
 const logger = require("../../utils/logger");
@@ -165,12 +166,8 @@ router.post(
       check("soyad", "Soyad alanı gereklidir").not().isEmpty(),
     ],
   ],
+  validationErrorHandler,
   async (req, res) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({ errors: errors.array() });
-    }
-
     const {
       ad,
       soyad,
@@ -282,6 +279,11 @@ router.put(
   "/:id",
   auth,
   yetkiKontrol("kisiler_guncelleme"),
+  [
+    check("ad", "Ad alanı gereklidir").not().isEmpty(),
+    check("soyad", "Soyad alanı gereklidir").not().isEmpty(),
+  ],
+  validationErrorHandler,
   async (req, res) => {
     const {
       ad,

@@ -20,14 +20,17 @@ router.get("/", auth, yetkiKontrol("borclar_goruntuleme"), async (req, res) => {
       include: [
         {
           model: Kisi,
+          as: "kisi",
           attributes: ["ad", "soyad"],
         },
         {
           model: Ucret,
+          as: "ucret",
           attributes: ["ad", "tutar", "birimUcret"],
           include: [
             {
               model: Tarife,
+              as: "tarife",
               attributes: ["ad", "kod"],
             },
           ],
@@ -54,9 +57,20 @@ router.get(
   yetkiKontrol("borclar_goruntuleme"),
   async (req, res) => {
     try {
-      const borc = await Borc.findById(req.params.id)
-        .populate("kisi_id", ["ad", "soyad"])
-        .populate("ucret_id", ["tutar", "baslangicTarihi", "bitisTarihi"]);
+      const borc = await Borc.findByPk(req.params.id, {
+        include: [
+          {
+            model: Kisi,
+            as: "kisi",
+            attributes: ["ad", "soyad"],
+          },
+          {
+            model: Ucret,
+            as: "ucret",
+            attributes: ["tutar", "baslangicTarihi", "bitisTarihi"],
+          },
+        ],
+      });
 
       if (!borc) {
         return res.status(404).json({ msg: "Borç bulunamadı" });

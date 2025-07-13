@@ -84,13 +84,9 @@ router.post(
       check("telefon_turu", "Telefon türü gereklidir").not().isEmpty(),
       check("telefon_no", "Telefon numarası gereklidir").not().isEmpty(),
     ],
+    require("../../middleware/validationErrorHandler"),
   ],
   async (req, res) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({ errors: errors.array() });
-    }
-
     const {
       referans_turu,
       referans_id,
@@ -124,8 +120,12 @@ router.post(
 // @access  Private
 router.put(
   "/:id",
-  auth,
-  yetkiKontrol("telefon_guncelleme"),
+  [
+    auth,
+    yetkiKontrol("telefon_guncelleme"),
+    [check("telefonNumarasi", "Telefon numarası gereklidir").not().isEmpty()],
+    require("../../middleware/validationErrorHandler"),
+  ],
   async (req, res) => {
     try {
       const { telefonNumarasi, tur, aciklama, durumu } = req.body;

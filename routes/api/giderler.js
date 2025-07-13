@@ -23,6 +23,7 @@ router.get(
         include: [
           {
             model: Kasa,
+            as: "kasa",
             attributes: ["kasaAdi"],
           },
         ],
@@ -45,14 +46,18 @@ router.get(
   yetkiKontrol("giderler_goruntuleme"),
   async (req, res) => {
     try {
-      const gider = await Gider.findById(req.params.id).populate("kasa_id", [
-        "kasaAdi",
-      ]);
-
+      const gider = await Gider.findByPk(req.params.id, {
+        include: [
+          {
+            model: Kasa,
+            as: "kasa",
+            attributes: ["kasaAdi"],
+          },
+        ],
+      });
       if (!gider) {
         return res.status(404).json({ msg: "Gider kaydı bulunamadı" });
       }
-
       res.json(gider);
     } catch (err) {
       logger.error("Gider getirilirken hata", { error: err.message });

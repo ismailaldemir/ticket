@@ -1,6 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const { check, validationResult } = require("express-validator");
+const validationErrorHandler = require("../../middleware/validationErrorHandler");
 const auth = require("../../middleware/auth");
 const yetkiKontrol = require("../../middleware/yetki");
 const logger = require("../../utils/logger");
@@ -82,13 +83,9 @@ router.post(
       check("referans_turu", "Referans türü gereklidir").not().isEmpty(),
       check("referans_id", "Referans ID gereklidir").not().isEmpty(),
     ],
+    validationErrorHandler,
   ],
   async (req, res) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({ errors: errors.array() });
-    }
-
     const {
       referans_turu,
       referans_id,
@@ -134,59 +131,72 @@ router.post(
 // @route   PUT api/adres/:id
 // @desc    Adres güncelle
 // @access  Özel
-router.put("/:id", auth, yetkiKontrol("adres_guncelleme"), async (req, res) => {
-  const {
-    adres_turu,
-    il,
-    ilce,
-    mahallekoy,
-    sokak,
-    apartman,
-    daire,
-    aciklama,
-    adres_mernis,
-    posta_kodu,
-    isActive,
-  } = req.body;
+router.put(
+  "/:id",
+  [
+    auth,
+    yetkiKontrol("adres_guncelleme"),
+    [
+      check("adres_turu", "Adres türü gereklidir").not().isEmpty(),
+      check("il", "İl gereklidir").not().isEmpty(),
+      check("ilce", "İlçe gereklidir").not().isEmpty(),
+    ],
+    validationErrorHandler,
+  ],
+  async (req, res) => {
+    const {
+      adres_turu,
+      il,
+      ilce,
+      mahallekoy,
+      sokak,
+      apartman,
+      daire,
+      aciklama,
+      adres_mernis,
+      posta_kodu,
+      isActive,
+    } = req.body;
 
-  // Adres güncelleme nesnesini oluştur
-  const adresGuncelleme = {};
-  if (adres_turu) adresGuncelleme.adres_turu = adres_turu;
-  if (il !== undefined) adresGuncelleme.il = il;
-  if (ilce !== undefined) adresGuncelleme.ilce = ilce;
-  if (mahallekoy !== undefined) adresGuncelleme.mahallekoy = mahallekoy;
-  if (sokak !== undefined) adresGuncelleme.sokak = sokak;
-  if (apartman !== undefined) adresGuncelleme.apartman = apartman;
-  if (daire !== undefined) adresGuncelleme.daire = daire;
-  if (aciklama !== undefined) adresGuncelleme.aciklama = aciklama;
-  if (adres_mernis !== undefined) adresGuncelleme.adres_mernis = adres_mernis;
-  if (posta_kodu !== undefined) adresGuncelleme.posta_kodu = posta_kodu;
-  if (isActive !== undefined) adresGuncelleme.isActive = isActive;
+    // Adres güncelleme nesnesini oluştur
+    const adresGuncelleme = {};
+    if (adres_turu) adresGuncelleme.adres_turu = adres_turu;
+    if (il !== undefined) adresGuncelleme.il = il;
+    if (ilce !== undefined) adresGuncelleme.ilce = ilce;
+    if (mahallekoy !== undefined) adresGuncelleme.mahallekoy = mahallekoy;
+    if (sokak !== undefined) adresGuncelleme.sokak = sokak;
+    if (apartman !== undefined) adresGuncelleme.apartman = apartman;
+    if (daire !== undefined) adresGuncelleme.daire = daire;
+    if (aciklama !== undefined) adresGuncelleme.aciklama = aciklama;
+    if (adres_mernis !== undefined) adresGuncelleme.adres_mernis = adres_mernis;
+    if (posta_kodu !== undefined) adresGuncelleme.posta_kodu = posta_kodu;
+    if (isActive !== undefined) adresGuncelleme.isActive = isActive;
 
-  try {
-    // Adres var mı kontrol et
-    let adres = await Adres.findById(req.params.id);
+    try {
+      // Adres var mı kontrol et
+      let adres = await Adres.findById(req.params.id);
 
-    if (!adres) {
-      return res.status(404).json({ msg: "Adres bulunamadı" });
+      if (!adres) {
+        return res.status(404).json({ msg: "Adres bulunamadı" });
+      }
+
+      // Güncelle
+      adres = await Adres.findByIdAndUpdate(
+        req.params.id,
+        { $set: adresGuncelleme },
+        { new: true }
+      );
+
+      res.json(adres);
+    } catch (err) {
+      logger.error("Adres güncellenirken hata", { error: err.message });
+      if (err.kind === "ObjectId") {
+        return res.status(404).json({ msg: "Adres bulunamadı" });
+      }
+      res.status(500).send("Sunucu hatası");
     }
-
-    // Güncelle
-    adres = await Adres.findByIdAndUpdate(
-      req.params.id,
-      { $set: adresGuncelleme },
-      { new: true }
-    );
-
-    res.json(adres);
-  } catch (err) {
-    logger.error("Adres güncellenirken hata", { error: err.message });
-    if (err.kind === "ObjectId") {
-      return res.status(404).json({ msg: "Adres bulunamadı" });
-    }
-    res.status(500).send("Sunucu hatası");
   }
-});
+);
 
 // @route   DELETE api/adres/:id
 // @desc    Adres sil

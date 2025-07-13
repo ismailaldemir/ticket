@@ -15,7 +15,9 @@ const Sube = require("../../models/Sube");
 // @access  Özel
 router.get("/", auth, yetkiKontrol("emails_goruntuleme"), async (req, res) => {
   try {
-    const emails = await Email.find().sort({ kayitTarihi: -1 });
+    const emails = await Email.findAll({
+      order: [["kayitTarihi", "DESC"]],
+    });
     res.json(emails);
   } catch (err) {
     logger.error("E-postalar getirilirken hata", { error: err.message });
@@ -32,11 +34,16 @@ router.get(
   yetkiKontrol("emails_goruntuleme"),
   async (req, res) => {
     try {
-      const emails = await Email.find({
-        referansTur: "Kisi",
-        referansId: req.params.kisi_id,
-      }).sort({ varsayilan: -1, kayitTarihi: -1 });
-
+      const emails = await Email.findAll({
+        where: {
+          referansTur: "Kisi",
+          referansId: req.params.kisi_id,
+        },
+        order: [
+          ["varsayilan", "DESC"],
+          ["kayitTarihi", "DESC"],
+        ],
+      });
       res.json(emails);
     } catch (err) {
       logger.error("Kişiye ait e-postalar getirilirken hata", {
@@ -59,11 +66,16 @@ router.get(
   yetkiKontrol("emails_goruntuleme"),
   async (req, res) => {
     try {
-      const emails = await Email.find({
-        referansTur: "Organizasyon",
-        referansId: req.params.organizasyon_id,
-      }).sort({ varsayilan: -1, kayitTarihi: -1 });
-
+      const emails = await Email.findAll({
+        where: {
+          referansTur: "Organizasyon",
+          referansId: req.params.organizasyon_id,
+        },
+        order: [
+          ["varsayilan", "DESC"],
+          ["kayitTarihi", "DESC"],
+        ],
+      });
       res.json(emails);
     } catch (err) {
       logger.error("Organizasyona ait e-postalar getirilirken hata", {
@@ -86,11 +98,16 @@ router.get(
   yetkiKontrol("emails_goruntuleme"),
   async (req, res) => {
     try {
-      const emails = await Email.find({
-        referansTur: "Sube",
-        referansId: req.params.sube_id,
-      }).sort({ varsayilan: -1, kayitTarihi: -1 });
-
+      const emails = await Email.findAll({
+        where: {
+          referansTur: "Sube",
+          referansId: req.params.sube_id,
+        },
+        order: [
+          ["varsayilan", "DESC"],
+          ["kayitTarihi", "DESC"],
+        ],
+      });
       res.json(emails);
     } catch (err) {
       logger.error("Şubeye ait e-postalar getirilirken hata", {

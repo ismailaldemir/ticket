@@ -72,10 +72,12 @@ router.get(
         include: [
           {
             model: Kisi,
+            as: "kisi",
             attributes: ["ad", "soyad"],
           },
           {
             model: Borc,
+            as: "borc",
             attributes: [
               "borcTutari",
               "borclandirmaTarihi",
@@ -86,10 +88,12 @@ router.get(
             include: [
               {
                 model: Ucret,
+                as: "ucret",
                 attributes: ["ad", "tutar"],
                 include: [
                   {
                     model: Tarife,
+                    as: "tarife",
                     attributes: ["ad", "kod"],
                   },
                 ],
@@ -98,6 +102,7 @@ router.get(
           },
           {
             model: Kasa,
+            as: "kasa",
             attributes: ["kasaAdi"],
           },
         ],

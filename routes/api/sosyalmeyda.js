@@ -3,6 +3,8 @@ const router = express.Router();
 const auth = require("../../middleware/auth");
 const logger = require("../../utils/logger");
 const yetkiKontrol = require("../../middleware/yetki");
+const { check } = require("express-validator");
+const validationErrorHandler = require("../../middleware/validationErrorHandler");
 
 // Sosyal medya görüntüleme
 router.get(
@@ -23,22 +25,41 @@ router.get(
 );
 
 // Sosyal medya ekleme
-router.post("/", auth, yetkiKontrol("sosyalmeyda_ekleme"), async (req, res) => {
-  try {
-    const yeniSosyalMedya = new SosyalMedya(req.body);
-    await yeniSosyalMedya.save();
-    res.json(yeniSosyalMedya);
-  } catch (err) {
-    logger.error("Sosyal medya eklenirken hata", { error: err.message });
-    res.status(500).send("Sunucu hatası");
+router.post(
+  "/",
+  [
+    auth,
+    yetkiKontrol("sosyalmeyda_ekleme"),
+    [
+      check("kullaniciAdi", "Kullanıcı adı gereklidir").not().isEmpty(),
+      check("tur", "Sosyal medya türü gereklidir").not().isEmpty(),
+    ],
+    validationErrorHandler,
+  ],
+  async (req, res) => {
+    try {
+      const yeniSosyalMedya = new SosyalMedya(req.body);
+      await yeniSosyalMedya.save();
+      res.json(yeniSosyalMedya);
+    } catch (err) {
+      logger.error("Sosyal medya eklenirken hata", { error: err.message });
+      res.status(500).send("Sunucu hatası");
+    }
   }
-});
+);
 
 // Sosyal medya güncelleme
 router.put(
   "/:id",
-  auth,
-  yetkiKontrol("sosyalmeyda_guncelleme"),
+  [
+    auth,
+    yetkiKontrol("sosyalmeyda_guncelleme"),
+    [
+      check("kullaniciAdi", "Kullanıcı adı gereklidir").not().isEmpty(),
+      check("tur", "Sosyal medya türü gereklidir").not().isEmpty(),
+    ],
+    validationErrorHandler,
+  ],
   async (req, res) => {
     try {
       const guncellenenSosyalMedya = await SosyalMedya.findByIdAndUpdate(

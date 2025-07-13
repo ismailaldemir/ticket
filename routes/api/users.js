@@ -5,7 +5,8 @@ const jwt = require("jsonwebtoken");
 const config = require("config");
 const auth = require("../../middleware/auth");
 const yetkiKontrol = require("../../middleware/yetki");
-const { check, validationResult } = require("express-validator");
+const { check } = require("express-validator");
+const validationErrorHandler = require("../../middleware/validationErrorHandler");
 const multer = require("multer");
 const path = require("path");
 const fs = require("fs");
@@ -65,12 +66,8 @@ router.post(
       "Lütfen en az 6 karakter içeren bir şifre giriniz"
     ).isLength({ min: 6 }),
   ],
+  validationErrorHandler,
   async (req, res) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({ errors: errors.array() });
-    }
-
     const { name, email, password, role } = req.body;
 
     try {
@@ -127,27 +124,32 @@ router.post(
 // @access  Özel (Admin)
 router.get("/", auth, yetkiKontrol("users_goruntuleme"), async (req, res) => {
   try {
-    const users = await User.find()
-      .select("-password")
-      .populate({
-        path: "roller",
-        select: "ad aciklama isAdmin yetkiler",
-        populate: {
-          path: "yetkiler",
-          select: "kod ad modul islem",
+    const users = await User.findAll({
+      attributes: { exclude: ["password"] },
+      include: [
+        {
+          model: require("../../models/Rol"),
+          as: "roller",
+          attributes: ["ad", "aciklama", "isAdmin"],
+          include: [
+            {
+              model: require("../../models/Yetki"),
+              as: "yetkiler",
+              attributes: ["kod", "ad", "modul", "islem"],
+            },
+          ],
         },
-      });
+      ],
+      order: [["date", "DESC"]], // User modelinde createdAt yerine 'date' alanı var
+    });
 
     // Avatar URL'lerini düzenleme
     const usersWithFormattedAvatars = users.map((user) => {
-      const userData = user.toObject();
-
-      // Avatar varsa ve tam URL değilse, tam URL oluştur
+      const userData = user.toJSON();
       if (userData.avatar && !userData.avatar.startsWith("http")) {
         const baseUrl = `${req.protocol}://${req.get("host")}`;
         userData.avatar = `${baseUrl}${userData.avatar}`;
       }
-
       return userData;
     });
 

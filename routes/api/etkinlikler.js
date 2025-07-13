@@ -65,11 +65,21 @@ router.get(
   yetkiKontrol("etkinlikler_goruntuleme"),
   async (req, res) => {
     try {
-      const etkinlikler = await Etkinlik.find()
-        .populate("organizasyon_id", "ad")
-        .populate("sorumlukisi_id", "ad soyad")
-        .sort({ baslamaTarihi: -1 });
-
+      const etkinlikler = await Etkinlik.findAll({
+        include: [
+          {
+            model: require("../../models/Organizasyon"),
+            as: "organizasyon",
+            attributes: ["ad"],
+          },
+          {
+            model: require("../../models/Kisi"),
+            as: "sorumluKisi",
+            attributes: ["ad", "soyad"],
+          },
+        ],
+        order: [["baslamaTarihi", "DESC"]],
+      });
       res.json(etkinlikler);
     } catch (err) {
       logger.error("Etkinlikler getirilirken hata", { error: err.message });

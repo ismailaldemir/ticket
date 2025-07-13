@@ -147,6 +147,32 @@ Sube.belongsTo(Organizasyon, {
 });
 Organizasyon.hasMany(Sube, { foreignKey: "organizasyon_id", as: "subeler" });
 
+// Organizasyon - Telefon (Polymorphic, sadece referansTur: 'Organizasyon' olanlar)
+Organizasyon.hasMany(Telefon, {
+  foreignKey: "referansId",
+  as: "telefonlar",
+  scope: { referansTur: "Organizasyon" },
+  constraints: false,
+});
+Telefon.belongsTo(Organizasyon, {
+  foreignKey: "referansId",
+  as: "organizasyon",
+  constraints: false,
+});
+
+// Organizasyon - SosyalMedya (Polymorphic, sadece referansTur: 'Organizasyon' olanlar)
+Organizasyon.hasMany(SosyalMedya, {
+  foreignKey: "referansId",
+  as: "sosyalMedyalar",
+  scope: { referansTur: "Organizasyon" },
+  constraints: false,
+});
+SosyalMedya.belongsTo(Organizasyon, {
+  foreignKey: "referansId",
+  as: "organizasyon",
+  constraints: false,
+});
+
 // Adres - polymorphic association
 Adres.belongsTo(Kisi, {
   foreignKey: "referansId",

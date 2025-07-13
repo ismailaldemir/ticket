@@ -23,6 +23,7 @@ router.get(
         include: [
           {
             model: Kasa,
+            as: "kasa", // Modeldeki alias ile aynı olmalı
             attributes: ["kasaAdi"],
           },
         ],
@@ -45,14 +46,18 @@ router.get(
   yetkiKontrol("gelirler_goruntuleme"),
   async (req, res) => {
     try {
-      const gelir = await Gelir.findById(req.params.id).populate("kasa_id", [
-        "kasaAdi",
-      ]);
-
+      const gelir = await Gelir.findByPk(req.params.id, {
+        include: [
+          {
+            model: Kasa,
+            as: "kasa",
+            attributes: ["kasaAdi"],
+          },
+        ],
+      });
       if (!gelir) {
         return res.status(404).json({ msg: "Gelir kaydı bulunamadı" });
       }
-
       res.json(gelir);
     } catch (err) {
       logger.error("Gelir getirilirken hata", { error: err.message });

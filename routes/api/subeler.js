@@ -1,7 +1,8 @@
 const express = require("express");
 const router = express.Router();
 const auth = require("../../middleware/auth");
-const { check, validationResult } = require("express-validator");
+const { check } = require("express-validator");
+const validationErrorHandler = require("../../middleware/validationErrorHandler");
 const logger = require("../../utils/logger");
 const yetkiKontrol = require("../../middleware/yetki");
 
@@ -117,19 +118,14 @@ router.post(
       check("ad", "Şube adı gereklidir").not().isEmpty(),
       check("organizasyon_id", "Organizasyon ID gereklidir").not().isEmpty(),
     ],
+    validationErrorHandler,
   ],
   async (req, res) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({ errors: errors.array() });
-    }
-
     const { ad, organizasyon_id, aciklama, iletisimBilgileri, isActive } =
       req.body;
-
     try {
       // Organizasyon var mı kontrolü
-      const organizasyon = await Organizasyon.findById(organizasyon_id);
+      const organizasyon = await Organizasyon.findByPk(organizasyon_id);
       if (!organizasyon) {
         return res
           .status(404)
@@ -138,10 +134,8 @@ router.post(
 
       // Aynı organizasyonda aynı isimde şube var mı kontrol et
       const existingSube = await Sube.findOne({
-        ad,
-        organizasyon_id,
+        where: { ad, organizasyon_id },
       });
-
       if (existingSube) {
         return res
           .status(400)
@@ -149,7 +143,7 @@ router.post(
       }
 
       // Yeni şube oluştur
-      const sube = new Sube({
+      const sube = await Sube.create({
         ad,
         organizasyon_id,
         aciklama,
@@ -164,7 +158,6 @@ router.post(
         "organizasyon_id",
         ["ad"]
       );
-
       res.json(populatedSube);
     } catch (err) {
       logger.error("Şube eklenirken hata", { error: err.message });
@@ -178,28 +171,30 @@ router.post(
 // @access  Özel
 router.put(
   "/:id",
-  auth,
-  yetkiKontrol("subeler_guncelleme"),
+  [
+    auth,
+    yetkiKontrol("subeler_guncelleme"),
+    [
+      check("ad", "Şube adı gereklidir").not().isEmpty(),
+      check("organizasyon_id", "Organizasyon ID gereklidir").not().isEmpty(),
+    ],
+    validationErrorHandler,
+  ],
   async (req, res) => {
     const { ad, organizasyon_id, aciklama, iletisimBilgileri, isActive } =
       req.body;
-
-    // Şube bilgilerini güncelleme
     const subeGuncelleme = {};
     if (ad) subeGuncelleme.ad = ad;
     if (organizasyon_id) subeGuncelleme.organizasyon_id = organizasyon_id;
     if (aciklama !== undefined) subeGuncelleme.aciklama = aciklama;
     if (iletisimBilgileri) subeGuncelleme.iletisimBilgileri = iletisimBilgileri;
     if (isActive !== undefined) subeGuncelleme.isActive = isActive;
-
     try {
       // Şube var mı kontrolü
       let sube = await Sube.findById(req.params.id);
-
       if (!sube) {
         return res.status(404).json({ msg: "Şube bulunamadı" });
       }
-
       // Organizasyon değişiyorsa, organizasyon var mı kontrolü
       if (
         organizasyon_id &&
@@ -212,48 +207,36 @@ router.put(
             .json({ msg: "Belirtilen organizasyon bulunamadı" });
         }
       }
-
       // Aynı isimde başka bir şube var mı kontrol et (isim veya organizasyon değişiyorsa)
       if (
         (ad && ad !== sube.ad) ||
         (organizasyon_id && organizasyon_id !== sube.organizasyon_id.toString())
       ) {
         const checkOrganizasyonId = organizasyon_id || sube.organizasyon_id;
-        const checkAd = ad || sube.ad;
-
         const existingSube = await Sube.findOne({
-          ad: checkAd,
+          ad,
           organizasyon_id: checkOrganizasyonId,
           _id: { $ne: req.params.id },
         });
-
         if (existingSube) {
           return res
             .status(400)
             .json({ msg: "Bu isimde bir şube bu organizasyonda zaten mevcut" });
         }
       }
-
-      // Güncelleme yap
+      // Güncelleme
       sube = await Sube.findByIdAndUpdate(
         req.params.id,
         { $set: subeGuncelleme },
         { new: true }
       ).populate("organizasyon_id", ["ad"]);
-
       res.json(sube);
     } catch (err) {
       logger.error("Şube güncellenirken hata", { error: err.message });
-
-      if (err.kind === "ObjectId") {
-        return res.status(404).json({ msg: "Şube bulunamadı" });
-      }
-
       res.status(500).send("Sunucu hatası");
     }
   }
 );
-
 // @route   DELETE api/subeler/:id
 // @desc    Şube sil
 // @access  Özel

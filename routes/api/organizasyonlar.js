@@ -3,6 +3,7 @@ const router = express.Router();
 const auth = require("../../middleware/auth");
 const yetkiKontrol = require("../../middleware/yetki");
 const { check, validationResult } = require("express-validator");
+const validationErrorHandler = require("../../middleware/validationErrorHandler");
 const multer = require("multer");
 const path = require("path");
 const fs = require("fs");
@@ -65,7 +66,27 @@ router.get(
   yetkiKontrol("organizasyonlar_goruntuleme"),
   async (req, res) => {
     try {
-      const organizasyonlar = await Organizasyon.find().sort({ ad: 1 });
+      const organizasyonlar = await Organizasyon.findAll({
+        include: [
+          { model: Sube, as: "subeler", attributes: ["id", "ad", "isActive"] },
+          {
+            model: Adres,
+            as: "adresler",
+            attributes: { exclude: ["createdAt", "updatedAt"] },
+          },
+          {
+            model: Telefon,
+            as: "telefonlar",
+            attributes: { exclude: ["createdAt", "updatedAt"] },
+          },
+          {
+            model: SosyalMedya,
+            as: "sosyalMedyalar",
+            attributes: { exclude: ["createdAt", "updatedAt"] },
+          },
+        ],
+        order: [["ad", "ASC"]],
+      });
       res.json(organizasyonlar);
     } catch (err) {
       logger.error("Organizasyonlar getirilirken hata", { error: err.message });
@@ -83,8 +104,9 @@ router.get(
   yetkiKontrol("organizasyonlar_goruntuleme"),
   async (req, res) => {
     try {
-      const organizasyonlar = await Organizasyon.find({ isActive: true }).sort({
-        ad: 1,
+      const organizasyonlar = await Organizasyon.findAll({
+        where: { isActive: true },
+        order: [["ad", "ASC"]],
       });
       res.json(organizasyonlar);
     } catch (err) {
@@ -105,12 +127,29 @@ router.get(
   yetkiKontrol("organizasyonlar_goruntuleme"),
   async (req, res) => {
     try {
-      const organizasyon = await Organizasyon.findById(req.params.id);
-
+      const organizasyon = await Organizasyon.findByPk(req.params.id, {
+        include: [
+          { model: Sube, as: "subeler", attributes: ["id", "ad", "isActive"] },
+          {
+            model: Adres,
+            as: "adresler",
+            attributes: { exclude: ["createdAt", "updatedAt"] },
+          },
+          {
+            model: Telefon,
+            as: "telefonlar",
+            attributes: { exclude: ["createdAt", "updatedAt"] },
+          },
+          {
+            model: SosyalMedya,
+            as: "sosyalMedyalar",
+            attributes: { exclude: ["createdAt", "updatedAt"] },
+          },
+        ],
+      });
       if (!organizasyon) {
         return res.status(404).json({ msg: "Organizasyon bulunamadı" });
       }
-
       res.json(organizasyon);
     } catch (err) {
       logger.error("Organizasyon getirilirken hata", { error: err.message });
@@ -133,13 +172,9 @@ router.post(
     auth,
     yetkiKontrol("organizasyonlar_ekleme"),
     [check("ad", "Organizasyon adı gereklidir").not().isEmpty()],
+    validationErrorHandler,
   ],
   async (req, res) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({ errors: errors.array() });
-    }
-
     try {
       const {
         ad,
@@ -154,7 +189,7 @@ router.post(
       } = req.body;
 
       // Yeni organizasyon oluştur
-      const yeniOrganizasyon = new Organizasyon({
+      const organizasyon = await Organizasyon.create({
         ad,
         misyon,
         vizyon,
@@ -165,8 +200,6 @@ router.post(
         iletisimBilgileri,
         isActive,
       });
-
-      const organizasyon = await yeniOrganizasyon.save();
       res.json(organizasyon);
     } catch (err) {
       logger.error("Organizasyon eklenirken hata", { error: err.message });
@@ -184,13 +217,9 @@ router.put(
     auth,
     yetkiKontrol("organizasyonlar_guncelleme"),
     [check("ad", "Organizasyon adı gereklidir").not().isEmpty()],
+    validationErrorHandler,
   ],
   async (req, res) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({ errors: errors.array() });
-    }
-
     try {
       const {
         ad,
@@ -205,7 +234,7 @@ router.put(
       } = req.body;
 
       // Organizasyon var mı kontrolü
-      const organizasyon = await Organizasyon.findById(req.params.id);
+      const organizasyon = await Organizasyon.findByPk(req.params.id);
       if (!organizasyon) {
         return res.status(404).json({ msg: "Organizasyon bulunamadı" });
       }
@@ -244,29 +273,25 @@ router.delete(
   async (req, res) => {
     try {
       // Organizasyon var mı kontrolü
-      const organizasyon = await Organizasyon.findById(req.params.id);
+      const organizasyon = await Organizasyon.findByPk(req.params.id);
       if (!organizasyon) {
         return res.status(404).json({ msg: "Organizasyon bulunamadı" });
       }
 
       // İlgili telefon, adres ve sosyal medya kayıtlarını sil
-      await Telefon.deleteMany({
-        referansId: req.params.id,
-        referansTur: "Organizasyon",
+      await Telefon.destroy({
+        where: { referansId: req.params.id, referansTur: "Organizasyon" },
       });
-      await Adres.deleteMany({
-        referansId: req.params.id,
-        referansTur: "Organizasyon",
+      await Adres.destroy({
+        where: { referansId: req.params.id, referansTur: "Organizasyon" },
       });
-      await SosyalMedya.deleteMany({
-        referansId: req.params.id,
-        referansTur: "Organizasyon",
+      await SosyalMedya.destroy({
+        where: { referansId: req.params.id, referansTur: "Organizasyon" },
       });
 
       // Organizasyona ait görselleri sil
       if (organizasyon.gorselBilgileri) {
         const gorselTipleri = ["logo", "amblem", "favicon"];
-
         gorselTipleri.forEach((tip) => {
           if (
             organizasyon.gorselBilgileri[tip] &&
@@ -285,7 +310,7 @@ router.delete(
       }
 
       // Organizasyonu sil
-      await organizasyon.deleteOne();
+      await organizasyon.destroy();
 
       res.json({ msg: "Organizasyon silindi" });
     } catch (err) {
@@ -538,13 +563,9 @@ router.post(
     auth,
     yetkiKontrol("organizasyonlar_guncelleme"),
     [check("telefonNumarasi", "Telefon numarası gereklidir").not().isEmpty()],
+    validationErrorHandler,
   ],
   async (req, res) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({ errors: errors.array() });
-    }
-
     try {
       const organizasyon = await Organizasyon.findById(req.params.id);
       if (!organizasyon) {
@@ -618,13 +639,9 @@ router.post(
     auth,
     yetkiKontrol("organizasyonlar_guncelleme"),
     [check("adres", "Adres gereklidir").not().isEmpty()],
+    validationErrorHandler,
   ],
   async (req, res) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({ errors: errors.array() });
-    }
-
     try {
       const organizasyon = await Organizasyon.findById(req.params.id);
       if (!organizasyon) {
@@ -727,13 +744,9 @@ router.post(
         .isEmpty(),
       check("tur", "Sosyal medya türü gereklidir").not().isEmpty(),
     ],
+    validationErrorHandler,
   ],
   async (req, res) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({ errors: errors.array() });
-    }
-
     try {
       const organizasyon = await Organizasyon.findById(req.params.id);
       if (!organizasyon) {

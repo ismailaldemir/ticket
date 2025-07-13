@@ -1,13 +1,26 @@
 // Kişileri getirirken populate işlemlerini güncelle
 exports.getKisiler = async (req, res) => {
   try {
-    const kisiler = await Kisi.find()
-      .populate("grup_id", "grupAdi")
-      .populate("organizasyon_id", "ad")
-      .populate("sube_id", "ad")
-      .populate("rol_id", "ad")
-      .sort({ ad: 1, soyad: 1 });
-
+    const kisiler = await Kisi.findAll({
+      include: [
+        {
+          model: require("../models/Grup"),
+          as: "grup",
+          attributes: ["grupAdi"],
+        },
+        {
+          model: require("../models/Organizasyon"),
+          as: "organizasyon",
+          attributes: ["ad"],
+        },
+        { model: require("../models/Sube"), as: "sube", attributes: ["ad"] },
+        { model: require("../models/Rol"), as: "rol", attributes: ["ad"] },
+      ],
+      order: [
+        ["ad", "ASC"],
+        ["soyad", "ASC"],
+      ],
+    });
     res.json(kisiler);
   } catch (err) {
     res.status(500).json({ msg: "Sunucu hatası" });
@@ -17,13 +30,27 @@ exports.getKisiler = async (req, res) => {
 // Aktif kişileri getirirken populate işlemlerini güncelle
 exports.getActiveKisiler = async (req, res) => {
   try {
-    const kisiler = await Kisi.find({ isActive: true })
-      .populate("grup_id", "grupAdi")
-      .populate("organizasyon_id", "ad")
-      .populate("sube_id", "ad")
-      .populate("rol_id", "ad")
-      .sort({ ad: 1, soyad: 1 });
-
+    const kisiler = await Kisi.findAll({
+      where: { isActive: true },
+      include: [
+        {
+          model: require("../models/Grup"),
+          as: "grup",
+          attributes: ["grupAdi"],
+        },
+        {
+          model: require("../models/Organizasyon"),
+          as: "organizasyon",
+          attributes: ["ad"],
+        },
+        { model: require("../models/Sube"), as: "sube", attributes: ["ad"] },
+        { model: require("../models/Rol"), as: "rol", attributes: ["ad"] },
+      ],
+      order: [
+        ["ad", "ASC"],
+        ["soyad", "ASC"],
+      ],
+    });
     res.json(kisiler);
   } catch (err) {
     res.status(500).json({ msg: "Sunucu hatası" });

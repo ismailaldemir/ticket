@@ -1,6 +1,7 @@
 const express = require("express");
 const router = express.Router();
-const { check, validationResult } = require("express-validator");
+const { check } = require("express-validator");
+const validationErrorHandler = require("../../middleware/validationErrorHandler");
 const auth = require("../../middleware/auth");
 const yetkiKontrol = require("../../middleware/yetki");
 const logger = require("../../utils/logger");
@@ -24,10 +25,12 @@ router.get(
         include: [
           {
             model: Kisi,
+            as: "kisi",
             attributes: ["ad", "soyad", "telefonNumarasi"],
           },
           {
             model: Sube,
+            as: "sube",
             attributes: ["ad"],
           },
         ],
@@ -51,10 +54,22 @@ router.get(
   yetkiKontrol("aboneler_goruntuleme"),
   async (req, res) => {
     try {
-      const aboneler = await Abone.find({ isActive: true })
-        .populate("kisi_id", ["ad", "soyad", "telefonNumarasi"])
-        .populate("sube_id", ["ad"])
-        .sort({ kayitTarihi: -1 });
+      const aboneler = await Abone.findAll({
+        where: { isActive: true },
+        include: [
+          {
+            model: Kisi,
+            as: "kisi",
+            attributes: ["ad", "soyad", "telefonNumarasi"],
+          },
+          {
+            model: Sube,
+            as: "sube",
+            attributes: ["ad"],
+          },
+        ],
+        order: [["kayitTarihi", "DESC"]],
+      });
       logger.info("Aktif aboneler getirildi", { count: aboneler.length });
       res.json(aboneler);
     } catch (err) {
@@ -136,16 +151,9 @@ router.post(
       check("aboneNo", "Abone numarası gereklidir").not().isEmpty(),
       check("sube_id", "Şube ID gereklidir").not().isEmpty(),
     ],
+    validationErrorHandler,
   ],
   async (req, res) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      logger.warn("Yeni abone ekleme doğrulama hatası", {
-        errors: errors.array(),
-      });
-      return res.status(400).json({ errors: errors.array() });
-    }
-
     const {
       kisi_id,
       aboneTuru,
@@ -218,8 +226,17 @@ router.post(
 // @access  Özel
 router.put(
   "/:id",
-  auth,
-  yetkiKontrol("aboneler_guncelleme"),
+  [
+    auth,
+    yetkiKontrol("aboneler_guncelleme"),
+    [
+      check("kisi_id", "Kişi ID gereklidir").not().isEmpty(),
+      check("aboneTuru", "Abone türü gereklidir").not().isEmpty(),
+      check("aboneNo", "Abone numarası gereklidir").not().isEmpty(),
+      check("sube_id", "Şube ID gereklidir").not().isEmpty(),
+    ],
+    validationErrorHandler,
+  ],
   async (req, res) => {
     const {
       kisi_id,
