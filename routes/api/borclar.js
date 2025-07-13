@@ -9,23 +9,35 @@ const Borc = require("../../models/Borc");
 const Kisi = require("../../models/Kisi");
 const Ucret = require("../../models/Ucret");
 const Odeme = require("../../models/Odeme");
+const Tarife = require("../../models/Tarife");
 
 // @route   GET api/borclar
 // @desc    Tüm borçları getir
 // @access  Özel
 router.get("/", auth, yetkiKontrol("borclar_goruntuleme"), async (req, res) => {
   try {
-    const borclar = await Borc.find()
-      .populate("kisi_id", ["ad", "soyad"])
-      .populate({
-        path: "ucret_id",
-        select: ["ad", "tutar", "birimUcret"],
-        populate: {
-          path: "tarife_id",
-          select: ["ad", "kod"],
+    const borclar = await Borc.findAll({
+      include: [
+        {
+          model: Kisi,
+          attributes: ["ad", "soyad"],
         },
-      })
-      .sort({ yil: -1, ay: -1 });
+        {
+          model: Ucret,
+          attributes: ["ad", "tutar", "birimUcret"],
+          include: [
+            {
+              model: Tarife,
+              attributes: ["ad", "kod"],
+            },
+          ],
+        },
+      ],
+      order: [
+        ["yil", "DESC"],
+        ["ay", "DESC"],
+      ],
+    });
     res.json(borclar);
   } catch (err) {
     logger.error("Borçlar getirilirken hata", { error: err.message });

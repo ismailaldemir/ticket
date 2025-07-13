@@ -13,7 +13,9 @@ const Kisi = require("../../models/Kisi");
 // @access  Özel
 router.get("/", auth, yetkiKontrol("gruplar_goruntuleme"), async (req, res) => {
   try {
-    const gruplar = await Grup.find().sort({ grupAdi: 1 });
+    const gruplar = await Grup.findAll({
+      order: [["grupAdi", "ASC"]],
+    });
     logger.info("Tüm gruplar getirildi", { count: gruplar.length });
     res.json(gruplar);
   } catch (err) {

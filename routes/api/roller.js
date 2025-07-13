@@ -7,6 +7,7 @@ const logger = require("../../utils/logger");
 
 const Rol = require("../../models/Rol");
 const User = require("../../models/User");
+const Yetki = require("../../models/Yetki");
 
 // @route   GET api/roller
 // @desc    Tüm rolleri getir
@@ -14,9 +15,15 @@ const User = require("../../models/User");
 router.get("/", auth, yetkiKontrol("roller_goruntuleme"), async (req, res) => {
   try {
     logger.info("Roller endpoint çağrıldı", { userId: req.user.id });
-    const roller = await Rol.find().sort({ ad: 1 }).populate({
-      path: "yetkiler",
-      select: "kod ad modul islem",
+    const roller = await Rol.findAll({
+      include: [
+        {
+          model: Yetki,
+          as: "yetkiler",
+          attributes: ["kod", "ad", "modul", "islem"],
+        },
+      ],
+      order: [["ad", "ASC"]],
     });
 
     logger.info(`${roller.length} adet rol bulundu`);
@@ -36,12 +43,15 @@ router.get(
   yetkiKontrol("roller_goruntuleme"),
   async (req, res) => {
     try {
-      const rol = await Rol.findById(req.params.id).populate("yetkiler", [
-        "kod",
-        "ad",
-        "modul",
-        "islem",
-      ]);
+      const rol = await Rol.findByPk(req.params.id, {
+        include: [
+          {
+            model: Yetki,
+            as: "yetkiler",
+            attributes: ["kod", "ad", "modul", "islem"],
+          },
+        ],
+      });
 
       if (!rol) {
         logger.warn("Rol bulunamadı", { roleId: req.params.id });
@@ -51,9 +61,6 @@ router.get(
       res.json(rol);
     } catch (err) {
       logger.error("Rol getirme hatası", { error: err.message });
-      if (err.kind === "ObjectId") {
-        return res.status(404).json({ msg: "Rol bulunamadı" });
-      }
       res.status(500).send("Sunucu hatası");
     }
   }
@@ -80,14 +87,14 @@ router.post(
       const { ad, aciklama, yetkiler, isActive, isDefault } = req.body;
 
       // Aynı isimde rol var mı kontrol et
-      const existingRol = await Rol.findOne({ ad });
+      const existingRol = await Rol.findOne({ where: { ad } });
       if (existingRol) {
         logger.warn("Aynı isimde rol mevcut", { roleName: ad });
         return res.status(400).json({ msg: "Bu isimde bir rol zaten mevcut" });
       }
 
       // Yeni rol oluştur
-      const yeniRol = new Rol({
+      const yeniRol = await Rol.create({
         ad,
         aciklama,
         yetkiler: yetkiler || [],
@@ -95,7 +102,6 @@ router.post(
         isDefault: isDefault !== undefined ? isDefault : false,
       });
 
-      await yeniRol.save();
       logger.info("Yeni rol oluşturuldu", { role: yeniRol });
       res.json(yeniRol);
     } catch (err) {
@@ -128,7 +134,7 @@ router.put(
       const { ad, aciklama, yetkiler, isActive, isDefault } = req.body;
 
       // Rol var mı kontrolü
-      let rol = await Rol.findById(req.params.id);
+      let rol = await Rol.findByPk(req.params.id);
 
       if (!rol) {
         logger.warn("Rol bulunamadı", { roleId: req.params.id });
@@ -148,8 +154,10 @@ router.put(
       // Aynı isimde başka bir rol var mı kontrol et
       if (ad !== rol.ad) {
         const existingRol = await Rol.findOne({
-          ad,
-          _id: { $ne: req.params.id },
+          where: {
+            ad,
+            id: { [require("sequelize").Op.ne]: req.params.id },
+          },
         });
         if (existingRol) {
           logger.warn("Aynı isimde rol mevcut", { roleName: ad });
@@ -165,24 +173,24 @@ router.put(
       if (yetkiler) rol.yetkiler = yetkiler;
       if (isActive !== undefined) rol.isActive = isActive;
       if (isDefault !== undefined && !rol.isAdmin) rol.isDefault = isDefault;
-      rol.sonGuncellemeTarihi = Date.now();
+      rol.sonGuncellemeTarihi = new Date();
 
       await rol.save();
 
       // Güncellenen rolü döndür
-      const guncelRol = await Rol.findById(req.params.id).populate("yetkiler", [
-        "kod",
-        "ad",
-        "modul",
-        "islem",
-      ]);
+      const guncelRol = await Rol.findByPk(req.params.id, {
+        include: [
+          {
+            model: Yetki,
+            as: "yetkiler",
+            attributes: ["kod", "ad", "modul", "islem"],
+          },
+        ],
+      });
       logger.info("Rol güncellendi", { role: guncelRol });
       res.json(guncelRol);
     } catch (err) {
       logger.error("Rol güncellenirken hata", { error: err });
-      if (err.kind === "ObjectId") {
-        return res.status(404).json({ msg: "Rol bulunamadı" });
-      }
       res.status(500).send("Sunucu hatası");
     }
   }
@@ -193,7 +201,7 @@ router.put(
 // @access  Özel
 router.delete("/:id", auth, yetkiKontrol("roller_silme"), async (req, res) => {
   try {
-    const rol = await Rol.findById(req.params.id);
+    const rol = await Rol.findByPk(req.params.id);
 
     if (!rol) {
       logger.warn("Rol bulunamadı", { roleId: req.params.id });
@@ -211,8 +219,10 @@ router.delete("/:id", auth, yetkiKontrol("roller_silme"), async (req, res) => {
     }
 
     // Bu rolü kullanan kullanıcıları kontrol et
-    const kullaniciSayisi = await User.countDocuments({
-      roller: req.params.id,
+    const kullaniciSayisi = await User.count({
+      where: {
+        roller: { [require("sequelize").Op.contains]: [req.params.id] },
+      },
     });
 
     if (kullaniciSayisi > 0) {
@@ -225,14 +235,11 @@ router.delete("/:id", auth, yetkiKontrol("roller_silme"), async (req, res) => {
       });
     }
 
-    await rol.remove();
+    await rol.destroy();
     logger.info("Rol silindi", { roleId: req.params.id });
     res.json({ msg: "Rol başarıyla silindi", id: req.params.id });
   } catch (err) {
     logger.error("Rol silinirken hata", { error: err });
-    if (err.kind === "ObjectId") {
-      return res.status(404).json({ msg: "Rol bulunamadı" });
-    }
     res.status(500).send("Sunucu hatası");
   }
 });
@@ -246,7 +253,10 @@ router.get(
   yetkiKontrol("roller_goruntuleme"),
   async (req, res) => {
     try {
-      const roller = await Rol.find({ isActive: true }).sort({ ad: 1 });
+      const roller = await Rol.findAll({
+        where: { isActive: true },
+        order: [["ad", "ASC"]],
+      });
       logger.info("Aktif roller getirildi", { count: roller.length });
       res.json(roller);
     } catch (err) {
@@ -275,9 +285,14 @@ router.post(
       }
 
       // Admin veya varsayılan rolleri kontrol et
-      const korunanRoller = await Rol.find({
-        _id: { $in: ids },
-        $or: [{ isAdmin: true }, { isDefault: true }],
+      const korunanRoller = await Rol.findAll({
+        where: {
+          id: { [require("sequelize").Op.in]: ids },
+          [require("sequelize").Op.or]: [
+            { isAdmin: true },
+            { isDefault: true },
+          ],
+        },
       });
 
       if (korunanRoller.length > 0) {
@@ -291,8 +306,10 @@ router.post(
       }
 
       // Bu rolleri kullanan kullanıcıları kontrol et
-      const kullaniciSayisi = await User.countDocuments({
-        roller: { $in: ids },
+      const kullaniciSayisi = await User.count({
+        where: {
+          roller: { [require("sequelize").Op.overlap]: ids },
+        },
       });
 
       if (kullaniciSayisi > 0) {
@@ -305,14 +322,16 @@ router.post(
         });
       }
 
-      const result = await Rol.deleteMany({ _id: { $in: ids } });
+      const result = await Rol.destroy({
+        where: { id: { [require("sequelize").Op.in]: ids } },
+      });
 
       logger.info("Roller toplu olarak silindi", {
-        deletedCount: result.deletedCount,
+        deletedCount: result,
         deletedIds: ids,
       });
       res.json({
-        msg: `${result.deletedCount} rol başarıyla silindi`,
+        msg: `${result} rol başarıyla silindi`,
         silinen: ids,
       });
     } catch (err) {

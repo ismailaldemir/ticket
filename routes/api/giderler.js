@@ -19,9 +19,15 @@ router.get(
   yetkiKontrol("giderler_goruntuleme"),
   async (req, res) => {
     try {
-      const giderler = await Gider.find()
-        .populate("kasa_id", ["kasaAdi"])
-        .sort({ tarih: -1 });
+      const giderler = await Gider.findAll({
+        include: [
+          {
+            model: Kasa,
+            attributes: ["kasaAdi"],
+          },
+        ],
+        order: [["tarih", "DESC"]],
+      });
       res.json(giderler);
     } catch (err) {
       logger.error("Giderler getirilirken hata", { error: err.message });

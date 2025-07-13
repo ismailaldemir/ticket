@@ -9,6 +9,7 @@ const Abone = require("../../models/Abone");
 const AboneDetay = require("../../models/AboneDetay");
 const Kisi = require("../../models/Kisi");
 const Ucret = require("../../models/Ucret");
+const Sube = require("../../models/Sube");
 
 // @route   GET api/aboneler
 // @desc    Tüm aboneleri getir
@@ -19,10 +20,19 @@ router.get(
   yetkiKontrol("aboneler_goruntuleme"),
   async (req, res) => {
     try {
-      const aboneler = await Abone.find()
-        .populate("kisi_id", ["ad", "soyad", "telefonNumarasi"])
-        .populate("sube_id", ["ad"])
-        .sort({ kayitTarihi: -1 });
+      const aboneler = await Abone.findAll({
+        include: [
+          {
+            model: Kisi,
+            attributes: ["ad", "soyad", "telefonNumarasi"],
+          },
+          {
+            model: Sube,
+            attributes: ["ad"],
+          },
+        ],
+        order: [["kayitTarihi", "DESC"]],
+      });
       logger.info("Tüm aboneler getirildi", { count: aboneler.length });
       res.json(aboneler);
     } catch (err) {

@@ -71,9 +71,17 @@ router.get(
   yetkiKontrol("kisiler_goruntuleme"),
   async (req, res) => {
     try {
-      const kisiler = await Kisi.find({ isActive: true })
-        .populate("grup_id", ["grupAdi"])
-        .sort({ ad: 1 });
+      const kisiler = await Kisi.findAll({
+        where: { isActive: true },
+        include: [
+          {
+            model: Grup,
+            as: "grup",
+            attributes: ["grupAdi"],
+          },
+        ],
+        order: [["ad", "ASC"]],
+      });
       res.json(kisiler);
     } catch (err) {
       logger.error("Aktif kişiler getirilirken hata", { error: err.message });
@@ -87,9 +95,18 @@ router.get(
 // @access  Özel
 router.get("/", auth, yetkiKontrol("kisiler_goruntuleme"), async (req, res) => {
   try {
-    const kisiler = await Kisi.find()
-      .populate("grup_id")
-      .sort({ ad: 1, soyad: 1 });
+    const kisiler = await Kisi.findAll({
+      include: [
+        {
+          model: Grup,
+          as: "grup",
+        },
+      ],
+      order: [
+        ["ad", "ASC"],
+        ["soyad", "ASC"],
+      ],
+    });
     res.json(kisiler);
   } catch (err) {
     logger.error("Kişiler getirilirken hata", { error: err.message });
@@ -106,9 +123,15 @@ router.get(
   yetkiKontrol("kisiler_goruntuleme"),
   async (req, res) => {
     try {
-      const kisi = await Kisi.findById(req.params.id).populate("grup_id", [
-        "grupAdi",
-      ]);
+      const kisi = await Kisi.findByPk(req.params.id, {
+        include: [
+          {
+            model: Grup,
+            as: "grup",
+            attributes: ["grupAdi"],
+          },
+        ],
+      });
 
       if (!kisi) {
         return res.status(404).json({ msg: "Kişi bulunamadı" });
@@ -117,7 +140,11 @@ router.get(
       res.json(kisi);
     } catch (err) {
       logger.error("Kişi getirilirken hata", { error: err.message });
-      if (err.kind === "ObjectId") {
+      // UUID validation check for Sequelize
+      if (
+        err.name === "SequelizeDatabaseError" ||
+        err.name === "SequelizeValidationError"
+      ) {
         return res.status(404).json({ msg: "Kişi bulunamadı" });
       }
       res.status(500).json({ msg: "Sunucu hatası", error: err.message });
@@ -229,17 +256,16 @@ router.post(
       }
 
       // Yeni kişi oluştur
-      const kisi = new Kisi(kisiVerileri);
+      const kisi = await Kisi.create(kisiVerileri);
 
-      await kisi.save();
       res.json(kisi);
     } catch (err) {
       logger.error("Yeni kişi eklenirken hata", { error: err.message });
-      if (err.name === "ValidationError") {
+      if (err.name === "SequelizeValidationError") {
         return res
           .status(400)
           .json({ msg: "Veri doğrulama hatası", error: err.message });
-      } else if (err.name === "MongoError") {
+      } else if (err.name === "SequelizeDatabaseError") {
         return res
           .status(500)
           .json({ msg: "Veritabanı hatası", error: err.message });
@@ -337,7 +363,7 @@ router.put(
 
     try {
       // Kişi var mı kontrolü
-      let kisi = await Kisi.findById(req.params.id);
+      let kisi = await Kisi.findByPk(req.params.id);
 
       if (!kisi) {
         return res.status(404).json({ msg: "Kişi bulunamadı" });
@@ -345,23 +371,32 @@ router.put(
 
       // Eğer grup_id belirtilmişse ve boş değilse, grubun var olup olmadığını kontrol et
       if (grup_id && grup_id !== "") {
-        const grup = await Grup.findById(grup_id);
+        const grup = await Grup.findByPk(grup_id);
         if (!grup) {
           return res.status(404).json({ msg: "Belirtilen grup bulunamadı" });
         }
       }
 
       // Güncelleme yap
-      kisi = await Kisi.findByIdAndUpdate(
-        req.params.id,
-        { $set: kisiGuncelleme },
-        { new: true }
-      ).populate("grup_id");
+      await kisi.update(kisiGuncelleme);
 
-      res.json(kisi);
+      // Güncellenmiş kişiyi grup bilgisiyle beraber getir
+      const guncelKisi = await Kisi.findByPk(req.params.id, {
+        include: [
+          {
+            model: Grup,
+            as: "grup",
+          },
+        ],
+      });
+
+      res.json(guncelKisi);
     } catch (err) {
       logger.error("Kişi güncellenirken hata", { error: err.message });
-      if (err.kind === "ObjectId") {
+      if (
+        err.name === "SequelizeDatabaseError" ||
+        err.name === "SequelizeValidationError"
+      ) {
         return res.status(404).json({ msg: "Kişi bulunamadı" });
       }
       res.status(500).json({ msg: "Sunucu hatası", error: err.message });

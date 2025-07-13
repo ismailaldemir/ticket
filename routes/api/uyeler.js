@@ -7,17 +7,31 @@ const logger = require("../../utils/logger");
 
 const Uye = require("../../models/Uye");
 const Kisi = require("../../models/Kisi");
+const Sube = require("../../models/Sube");
+const UyeRol = require("../../models/UyeRol");
 
 // @route   GET api/uyeler
 // @desc    Tüm üyeleri getir
 // @access  Özel
 router.get("/", auth, yetkiKontrol("uyeler_goruntuleme"), async (req, res) => {
   try {
-    const uyeler = await Uye.find()
-      .populate("kisi_id", ["ad", "soyad", "telefonNumarasi"])
-      .populate("sube_id", ["ad"])
-      .populate("uyeRol_id", ["ad"])
-      .sort({ kayitTarihi: -1 });
+    const uyeler = await Uye.findAll({
+      include: [
+        {
+          model: Kisi,
+          attributes: ["ad", "soyad", "telefonNumarasi"],
+        },
+        {
+          model: Sube,
+          attributes: ["ad"],
+        },
+        {
+          model: UyeRol,
+          attributes: ["ad"],
+        },
+      ],
+      order: [["kayitTarihi", "DESC"]],
+    });
     logger.info("Tüm üyeler getirildi", { count: uyeler.length });
     res.json(uyeler);
   } catch (err) {
@@ -65,7 +79,7 @@ router.get(
           "telefonNumarasi",
           "dogumYeri",
           "dogumTarihi",
-          "cinsiyet"
+          "cinsiyet",
         ])
         .populate("sube_id", ["ad"])
         .populate("uyeRol_id", ["ad"]);

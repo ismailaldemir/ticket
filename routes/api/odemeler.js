@@ -13,6 +13,8 @@ const Odeme = require("../../models/Odeme");
 const Borc = require("../../models/Borc");
 const Kisi = require("../../models/Kisi");
 const Kasa = require("../../models/Kasa");
+const Ucret = require("../../models/Ucret");
+const Tarife = require("../../models/Tarife");
 
 // Dekont dosyaları için yükleme dizini oluşturma
 const dekontsDir = path.join(__dirname, "../../uploads/dekonts");
@@ -66,22 +68,41 @@ router.get(
   yetkiKontrol("odemeler_goruntuleme"),
   async (req, res) => {
     try {
-      const odemeler = await Odeme.find()
-        .populate("kisi_id", ["ad", "soyad"])
-        .populate({
-          path: "borc_id",
-          select: ["borcTutari", "borclandirmaTarihi", "yil", "ay", "kalan"],
-          populate: {
-            path: "ucret_id",
-            select: ["ad", "tutar"],
-            populate: {
-              path: "tarife_id",
-              select: ["ad", "kod"],
-            },
+      const odemeler = await Odeme.findAll({
+        include: [
+          {
+            model: Kisi,
+            attributes: ["ad", "soyad"],
           },
-        })
-        .populate("kasa_id", ["kasaAdi"])
-        .sort({ odemeTarihi: -1 });
+          {
+            model: Borc,
+            attributes: [
+              "borcTutari",
+              "borclandirmaTarihi",
+              "yil",
+              "ay",
+              "kalan",
+            ],
+            include: [
+              {
+                model: Ucret,
+                attributes: ["ad", "tutar"],
+                include: [
+                  {
+                    model: Tarife,
+                    attributes: ["ad", "kod"],
+                  },
+                ],
+              },
+            ],
+          },
+          {
+            model: Kasa,
+            attributes: ["kasaAdi"],
+          },
+        ],
+        order: [["odemeTarihi", "DESC"]],
+      });
       res.json(odemeler);
     } catch (err) {
       logger.error("Ödemeler getirilirken hata", { error: err.message });
