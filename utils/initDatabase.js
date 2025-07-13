@@ -19,7 +19,7 @@ const initializeAdmin = async () => {
     console.log("Admin kullanıcısı ve yetkileri kontrol ediliyor...");
 
     // 1. Admin kullanıcısını kontrol et veya oluştur
-    let admin = await User.findOne({ email: adminEmail });
+    let admin = await User.findOne({ where: { email: adminEmail } });
 
     if (!admin) {
       console.log("Admin kullanıcısı bulunamadı, oluşturuluyor...");
@@ -28,7 +28,7 @@ const initializeAdmin = async () => {
       const salt = await bcrypt.genSalt(10);
       const hashedPassword = await bcrypt.hash(adminPassword, salt);
 
-      admin = new User({
+      admin = await User.create({
         name: adminName,
         email: adminEmail,
         password: hashedPassword,
@@ -36,28 +36,26 @@ const initializeAdmin = async () => {
         active: true,
       });
 
-      await admin.save();
-      console.log("Admin kullanıcısı oluşturuldu! ID:", admin._id);
+      console.log("Admin kullanıcısı oluşturuldu! ID:", admin.id);
     } else {
-      console.log("Admin kullanıcısı bulundu! ID:", admin._id);
+      console.log("Admin kullanıcısı bulundu! ID:", admin.id);
     }
 
     // 2. Admin rolünü kontrol et veya oluştur
-    let adminRol = await Rol.findOne({ ad: "Admin" });
+    let adminRol = await Rol.findOne({ where: { ad: "Admin" } });
 
     if (!adminRol) {
       console.log("Admin rolü bulunamadı, oluşturuluyor...");
-      adminRol = new Rol({
+      adminRol = await Rol.create({
         ad: "Admin",
         aciklama: "Sistem yöneticisi rolü",
         isAdmin: true,
         isDefault: false,
         isActive: true,
       });
-      await adminRol.save();
-      console.log("Admin rolü oluşturuldu! ID:", adminRol._id);
+      console.log("Admin rolü oluşturuldu! ID:", adminRol.id);
     } else {
-      console.log("Admin rolü bulundu! ID:", adminRol._id);
+      console.log("Admin rolü bulundu! ID:", adminRol.id);
 
       // Admin rolünün isAdmin özelliğini doğrula
       if (!adminRol.isAdmin) {
@@ -87,15 +85,15 @@ const initializeAdmin = async () => {
     // permissions.json'daki tüm yetkileri veritabanında kontrol et ve ekle
     let eklenenYetkiSayisi = 0;
     for (const yetkiData of permissions) {
-      const mevcut = await Yetki.findOne({ kod: yetkiData.kod });
+      const mevcut = await Yetki.findOne({ where: { kod: yetkiData.kod } });
       if (!mevcut) {
-        await new Yetki(yetkiData).save();
+        await Yetki.create(yetkiData);
         eklenenYetkiSayisi++;
       }
     }
 
     // Tüm yetkileri tekrar çek (güncel ve eksiksiz)
-    const tumYetkiler = await Yetki.find();
+    const tumYetkiler = await Yetki.findAll();
     // permissions.json'daki kodlar ile veritabanındaki kodları karşılaştır
     const tumYetkiKodlari = tumYetkiler.map((y) => y.kod);
     const eksikKodlar = permissions
@@ -112,37 +110,52 @@ const initializeAdmin = async () => {
     // Admin rolüne sadece permissions.json'daki kodlara sahip yetkileri ata
     const adminYetkiIdleri = tumYetkiler
       .filter((y) => permissions.some((p) => p.kod === y.kod))
-      .map((y) => y._id);
+      .map((y) => y.id);
 
-    adminRol.yetkiler = adminYetkiIdleri;
-    await adminRol.save();
+    // Sequelize'da many-to-many ilişki için setYetkiler metodunu kullan
+    await adminRol.setYetkiler(adminYetkiIdleri);
     console.log(
-      `Admin rolüne atanan yetki sayısı: ${adminRol.yetkiler.length} / permissions.json: ${permissions.length}`
+      `Admin rolüne atanan yetki sayısı: ${adminYetkiIdleri.length} / permissions.json: ${permissions.length}`
     );
 
-    // 5. Admin kullanıcısına admin rolünü ata
-    if (!admin.roller || !Array.isArray(admin.roller)) {
-      admin.roller = [];
-    }
+    // 5. Admin kullanıcısına admin rolünü ata (Sequelize many-to-many ilişkisi)
+    const adminRoller = await admin.getRoller();
+    const hasAdminRole = adminRoller.some((rol) => rol.id === adminRol.id);
 
-    if (
-      !admin.roller.find((rol) => rol.toString() === adminRol._id.toString())
-    ) {
-      admin.roller.push(adminRol._id);
-      await admin.save();
-      console.log("Admin kullanıcısına admin rolü başarıyla atandı!");
+    if (!hasAdminRole) {
+      try {
+        await admin.addRol(adminRol);
+        console.log("Admin kullanıcısına admin rolü başarıyla atandı!");
+      } catch (error) {
+        console.log("addRol metodu çalışmıyor, manuel olarak ekleniyor...");
+        // Manuel olarak junction table'a insert yap
+        const { UserRol } = require("../models/index");
+        await UserRol.create({
+          userId: admin.id,
+          rolId: adminRol.id,
+        });
+        console.log("Admin kullanıcısına admin rolü manuel olarak atandı!");
+      }
     } else {
       console.log("Admin kullanıcısı zaten admin rolüne sahip.");
     }
 
     // Admin kullanıcısını kontrol et
-    const adminDetay = await User.findById(admin._id).populate({
-      path: "roller",
-      select: "ad isAdmin yetkiler",
-      populate: {
-        path: "yetkiler",
-        select: "kod ad modul islem",
-      },
+    const adminDetay = await User.findByPk(admin.id, {
+      include: [
+        {
+          model: Rol,
+          as: "roller",
+          attributes: ["ad", "isAdmin"],
+          include: [
+            {
+              model: Yetki,
+              as: "yetkiler",
+              attributes: ["kod", "ad", "modul", "islem"],
+            },
+          ],
+        },
+      ],
     });
 
     console.log("Admin kullanıcısı detayları:");

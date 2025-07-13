@@ -38,7 +38,7 @@ Bu proje, apartman ve site yönetimi için geliştirilmiş kapsamlı bir aidat t
 
 1. **Repository'yi klonlayın**
 ```bash
-git clone https://github.com/ismailaldemircozum/iyonetim360.git
+git clone https://github.com/[KULLANICI_ADI]/iyonetim360.git
 cd iyonetim360
 ```
 

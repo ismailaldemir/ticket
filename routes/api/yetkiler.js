@@ -38,7 +38,12 @@ router.get(
   async (req, res) => {
     try {
       console.log("Yetkiler endpoint çağrıldı. Kullanıcı ID:", req.user.id);
-      const yetkiler = await Yetki.find().sort({ modul: 1, islem: 1 });
+      const yetkiler = await Yetki.findAll({
+        order: [
+          ["modul", "ASC"],
+          ["islem", "ASC"],
+        ],
+      });
       console.log(`${yetkiler.length} adet yetki bulundu.`);
       res.json(yetkiler);
     } catch (err) {
@@ -57,7 +62,7 @@ router.get(
   yetkiKontrol("yetkiler_goruntuleme"),
   async (req, res) => {
     try {
-      const yetki = await Yetki.findById(req.params.id);
+      const yetki = await Yetki.findByPk(req.params.id);
 
       if (!yetki) {
         return res.status(404).json({ msg: "Yetki bulunamadı" });
@@ -105,7 +110,7 @@ router.post(
       const { kod, ad, aciklama, modul, islem, isActive } = req.body;
 
       // Aynı kodlu yetki var mı kontrol et
-      const existingYetki = await Yetki.findOne({ kod });
+      const existingYetki = await Yetki.findOne({ where: { kod } });
       if (existingYetki) {
         return res.status(400).json({ msg: "Bu kodla bir yetki zaten mevcut" });
       }
@@ -160,7 +165,7 @@ router.put(
       const { kod, ad, aciklama, modul, islem, isActive } = req.body;
 
       // Yetki var mı kontrolü
-      let yetki = await Yetki.findById(req.params.id);
+      let yetki = await Yetki.findByPk(req.params.id);
 
       if (!yetki) {
         return res.status(404).json({ msg: "Yetki bulunamadı" });
@@ -210,7 +215,7 @@ router.delete(
   async (req, res) => {
     try {
       // Yetki var mı kontrolü
-      const yetki = await Yetki.findById(req.params.id);
+      const yetki = await Yetki.findByPk(req.params.id);
 
       if (!yetki) {
         return res.status(404).json({ msg: "Yetki bulunamadı" });

@@ -16,37 +16,18 @@ const User = require("../../models/User");
 router.get("/", auth, async (req, res) => {
   try {
     // Kullanıcıyı roller ve rollerin yetkileriyle birlikte eksiksiz çek
-    const user = await User.findById(req.user.id)
-      .select("-password")
-      .populate([
-        {
-          path: "roller",
-          select: "ad aciklama isAdmin yetkiler",
-          populate: {
-            path: "yetkiler",
-            select: "kod ad modul islem",
-          },
-        },
-      ]);
+    const user = await User.findByPk(req.user.id, {
+      attributes: { exclude: ["password"] },
+    });
 
     if (!user) {
-      return res.status(400).json({ msg: "Bu kullanıcı için profil bulunamadı" });
+      return res
+        .status(400)
+        .json({ msg: "Bu kullanıcı için profil bulunamadı" });
     }
 
-    // Kullanıcı objesini sadeleştir (roller ve yetkiler her zaman nesne olarak dönsün)
-    const userObj = user.toObject({ virtuals: true });
-    if (userObj.roller && Array.isArray(userObj.roller)) {
-      userObj.roller = userObj.roller.map((rol) => ({
-        ...rol,
-        yetkiler: Array.isArray(rol.yetkiler)
-          ? rol.yetkiler.map((y) =>
-              typeof y === "object" && y !== null
-                ? y
-                : {}
-            )
-          : [],
-      }));
-    }
+    // Kullanıcı objesini sadeleştir
+    const userObj = user.dataValues;
 
     res.json(userObj);
   } catch (err) {
@@ -73,19 +54,32 @@ router.post(
     const { email, password } = req.body;
 
     try {
+      console.log("Login denemesi:", {
+        email,
+        password: password ? "***" : "boş",
+      });
+
       // Kullanıcı var mı kontrol et
-      let user = await User.findOne({ email });
+      let user = await User.findOne({ where: { email } });
 
       if (!user) {
+        console.log("Kullanıcı bulunamadı:", email);
         return res.status(400).json({ msg: "Geçersiz kimlik bilgileri" });
       }
+
+      console.log("Kullanıcı bulundu:", { id: user.id, email: user.email });
+      console.log("Veritabanındaki hash:", user.password ? "mevcut" : "yok");
 
       // Şifreleri karşılaştır
       const isMatch = await bcrypt.compare(password, user.password);
+      console.log("Şifre karşılaştırma sonucu:", isMatch);
 
       if (!isMatch) {
+        console.log("Şifre eşleşmedi");
         return res.status(400).json({ msg: "Geçersiz kimlik bilgileri" });
       }
+
+      console.log("Giriş başarılı, token oluşturuluyor...");
 
       // JWT token oluştur
       const payload = {
@@ -115,39 +109,18 @@ router.post(
             },
           });
 
-      // Kullanıcıyı rollerini ve yetkilerini popüle ederek tekrar çek
-      const populatedUser = await User.findById(user.id)
-        .select("-password")
-        .populate([
-          {
-            path: "roller",
-            select: "ad aciklama isAdmin yetkiler",
-            populate: {
-              path: "yetkiler",
-              select: "kod ad modul islem",
-            },
-          },
-        ]);
+          // Kullanıcıyı rollerini ve yetkilerini dahil ederek tekrar çek
+          const populatedUser = await User.findByPk(user.id, {
+            attributes: { exclude: ["password"] },
+          });
 
-      // Kullanıcı objesini sadeleştir (roller ve yetkiler her zaman nesne olarak dönsün)
-      let userObj = populatedUser.toObject({ virtuals: true });
-      if (userObj.roller && Array.isArray(userObj.roller)) {
-        userObj.roller = userObj.roller.map((rol) => ({
-          ...rol,
-          yetkiler: Array.isArray(rol.yetkiler)
-            ? rol.yetkiler.map((y) =>
-                typeof y === "object" && y !== null
-                  ? y
-                  : {}
-              )
-            : [],
-        }));
-      }
+          // Kullanıcı objesini sadeleştir
+          let userObj = populatedUser.dataValues;
 
-      res.json({
-        token,
-        user: userObj,
-      });
+          res.json({
+            token,
+            user: userObj,
+          });
         }
       );
     } catch (err) {

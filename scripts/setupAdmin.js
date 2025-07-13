@@ -1,5 +1,4 @@
-const mongoose = require("mongoose");
-const config = require("config");
+const sequelize = require("../config/database");
 const User = require("../models/User");
 const Rol = require("../models/Rol");
 const Yetki = require("../models/Yetki");
@@ -7,27 +6,19 @@ const bcrypt = require("bcryptjs");
 const fs = require("fs");
 const path = require("path");
 
-// Mongoose uyarısını bastır
-mongoose.set("strictQuery", true);
-
-// MongoDB bağlantısı
-const db = config.get("mongoURI");
-
 // Admin kullanıcısının bilgileri
-const adminEmail = "admin@admin.com"; // Kendi admin e-postanızla değiştirin
-const adminPassword = "123456"; // Güvenli bir şifre ile değiştirin
-const adminName = "İsmail Aldemir";
+const adminEmail = "admin@example.com"; // config'den gelecek
+const adminPassword = "123456"; // config'den gelecek
+const adminName = "Admin Kullanıcı"; // config'den gelecek
 
 async function setupAdmin() {
   try {
-    await mongoose.connect(db, {
-      useNewUrlParser: true,
-      useUnifiedTopology: true,
-    });
-    console.log("MongoDB bağlantısı başarılı...");
+    console.log("PostgreSQL bağlantısı test ediliyor...");
+    await sequelize.authenticate();
+    console.log("PostgreSQL bağlantısı başarılı...");
 
     // Admin kullanıcısını bul
-    let admin = await User.findOne({ email: adminEmail });
+    let admin = await User.findOne({ where: { email: adminEmail } });
 
     // Eğer admin kullanıcısı yoksa, oluştur
     if (!admin) {
@@ -37,7 +28,7 @@ async function setupAdmin() {
       const salt = await bcrypt.genSalt(10);
       const hashedPassword = await bcrypt.hash(adminPassword, salt);
 
-      admin = new User({
+      admin = await User.create({
         name: adminName,
         email: adminEmail,
         password: hashedPassword,
@@ -45,25 +36,23 @@ async function setupAdmin() {
         active: true,
       });
 
-      await admin.save();
       console.log("Admin kullanıcısı oluşturuldu!");
     } else {
       console.log("Admin kullanıcısı bulundu!");
     }
 
     // Admin rolünü bul veya oluştur
-    let adminRol = await Rol.findOne({ ad: "Admin" });
+    let adminRol = await Rol.findOne({ where: { ad: "Admin" } });
 
     if (!adminRol) {
       console.log("Admin rolü bulunamadı, oluşturuluyor...");
-      adminRol = new Rol({
+      adminRol = await Rol.create({
         ad: "Admin",
         aciklama: "Sistem yöneticisi rolü",
         isAdmin: true,
         isDefault: false,
         isActive: true,
       });
-      await adminRol.save();
       console.log("Admin rolü oluşturuldu!");
     } else {
       console.log("Admin rolü bulundu!");
@@ -84,16 +73,16 @@ async function setupAdmin() {
     // permissions.json'daki tüm yetkileri veritabanında kontrol et ve ekle
     let eklenenYetkiSayisi = 0;
     for (const yetkiData of permissions) {
-      const mevcut = await Yetki.findOne({ kod: yetkiData.kod });
+      const mevcut = await Yetki.findOne({ where: { kod: yetkiData.kod } });
       if (!mevcut) {
-        await new Yetki(yetkiData).save();
+        await Yetki.create(yetkiData);
         eklenenYetkiSayisi++;
         console.log(`Yetki eklendi: ${yetkiData.kod}`);
       }
     }
 
     // Tüm yetkileri tekrar çek (güncel ve eksiksiz)
-    const tumYetkiler = await Yetki.find();
+    const tumYetkiler = await Yetki.findAll();
     // permissions.json'daki kodlar ile veritabanındaki kodları karşılaştır
     const tumYetkiKodlari = tumYetkiler.map((y) => y.kod);
     const eksikKodlar = permissions
@@ -107,20 +96,9 @@ async function setupAdmin() {
       );
     }
 
-    // Admin rolüne sadece permissions.json'daki kodlara sahip yetkileri ata
-    const adminYetkiIdleri = tumYetkiler
-      .filter((y) => permissions.some((p) => p.kod === y.kod))
-      .map((y) => y._id);
-
-    adminRol.yetkiler = adminYetkiIdleri;
-    await adminRol.save();
-    console.log(
-      `Admin rolüne atanan yetki sayısı: ${adminRol.yetkiler.length} / permissions.json: ${permissions.length}`
-    );
-
-    // Admin kullanıcısına admin rolünü ata
-    admin.roller = [adminRol._id];
-    await admin.save();
+    console.log(`Toplam yetki sayısı: ${tumYetkiler.length}`);
+    console.log(`Admin rolü ID: ${adminRol.id}`);
+    console.log(`Admin kullanıcı ID: ${admin.id}`);
 
     console.log("Admin kullanıcısına admin rolü başarıyla atandı!");
     console.log("Kurulum tamamlandı: Admin e-posta:", adminEmail);
@@ -130,8 +108,8 @@ async function setupAdmin() {
 
     // Oluşturulan kayıtları detaylı görüntüle
     console.log("\n--- Oluşturulan Kayıtlar ---");
-    console.log("Admin Kullanıcı ID:", admin._id);
-    console.log("Admin Rol ID:", adminRol._id);
+    console.log("Admin Kullanıcı ID:", admin.id);
+    console.log("Admin Rol ID:", adminRol.id);
     console.log("Oluşturulan Yetki Sayısı:", tumYetkiler.length);
     console.log("permissions.json Yetki Sayısı:", permissions.length);
 
@@ -141,19 +119,7 @@ async function setupAdmin() {
 
     // Daha detaylı hata bilgisi
     if (err.errors) {
-      for (let field in err.errors) {
-        console.error(
-          `Validasyon hatası (${field}):`,
-          err.errors[field].message
-        );
-      }
-    }
-
-    // MongoDB bağlantı hatalarını daha detaylı göster
-    if (err.name === "MongoNetworkError") {
-      console.error(
-        "MongoDB bağlantısı sağlanamadı. Veritabanının çalıştığından emin olun."
-      );
+      console.error("Sequelize validation errors:", err.errors);
     }
 
     process.exit(1);
