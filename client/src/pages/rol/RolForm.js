@@ -514,8 +514,8 @@ const RolForm = () => {
                   </Alert>
                 ) : Object.keys(groupedYetkiler).length > 0 ? (
                   Object.entries(groupedYetkiler).map(
-                    ([modul, modulYetkiler]) => (
-                      <Box key={modul} sx={{ mb: 2 }}>
+                    ([modul, modulYetkiler], modulIndex) => (
+                      <Box key={modul || modulIndex} sx={{ mb: 2 }}>
                         <Box
                           sx={{
                             display: "flex",
@@ -539,9 +539,9 @@ const RolForm = () => {
                           </Typography>
                         </Box>
                         <List dense>
-                          {modulYetkiler.map((yetki) => (
+                          {modulYetkiler.map((yetki, yetkiIndex) => (
                             <ListItem
-                              key={yetki._id}
+                              key={yetki._id || yetkiIndex}
                               button
                               onClick={() => {
                                 handleYetkiToggle(yetki._id);

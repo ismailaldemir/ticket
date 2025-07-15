@@ -532,15 +532,16 @@ const RolList = () => {
                     .map((rol, index) => {
                       const isItemSelected = isSelected(rol._id);
                       const labelId = `rol-checkbox-${index}`;
-
+                      const rowKey = rol._id || `rol-row-${index}`;
                       return (
                         <Grow
                           in={contentLoaded}
-                          key={rol._id}
+                          key={rowKey}
                           timeout={{ enter: 300 + index * 50 }}
                           style={{ transformOrigin: "0 0 0" }}
                         >
                           <TableRow
+                            key={rowKey}
                             hover
                             onClick={(event) =>
                               rol && !rol.isAdmin

@@ -131,15 +131,17 @@ const UserForm = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
+
+  // id değiştiğinde veya component ilk mount olduğunda, eski kullanıcıyı temizle
   useEffect(() => {
     isComponentMounted.current = true;
-
+    dispatch(clearCurrentUser());
     return () => {
       isComponentMounted.current = false;
       dispatch(clearCurrentUser());
       Logger.debug("UserForm bileşeni temizlendi");
     };
-  }, [dispatch]);
+  }, [dispatch, id]);
 
   useEffect(() => {
     if (
@@ -178,24 +180,20 @@ const UserForm = () => {
       roller: currentUser.roller || [],
     };
 
-    let shouldUpdateForm = false;
-    for (const key of Object.keys(newFormData)) {
-      if (formData[key] !== newFormData[key]) {
-        shouldUpdateForm = true;
-        break;
-      }
-    }
-    if (shouldUpdateForm) {
+    // Sadece farklıysa güncelle
+    const isFormDifferent = Object.keys(newFormData).some(
+      (key) => formData[key] !== newFormData[key]
+    );
+    if (isFormDifferent) {
       Logger.debug("Form verisi güncelleniyor", { currentUser });
       setFormData(newFormData);
     }
 
-    if (currentUser.avatar !== avatarPreview) {
+    // Avatar sadece farklıysa güncellenir
+    if ((currentUser.avatar || null) !== (avatarPreview || null)) {
       setAvatarPreview(currentUser.avatar || null);
     }
-    // Sadece currentUser ve id değiştiğinde tetiklenmeli, formData ve avatarPreview dependency array'e eklenmeli
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentUser, id, formData, avatarPreview]);
+  }, [currentUser, id]);
 
   const validateForm = () => {
     const errors = {};
