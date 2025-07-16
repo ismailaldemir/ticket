@@ -54,6 +54,7 @@ import {
   deleteManyRoller,
   getRolById,
 } from "../../redux/rol/rolSlice";
+import notificationService from "../../services/notificationService";
 import useConfirm from "../../hooks/useConfirm";
 import DeleteDialog from "../../components/common/DeleteDialog";
 import ListSkeleton from "../../components/skeletons/ListSkeleton";
@@ -141,7 +142,7 @@ const RolList = () => {
       setSelected(newSelected);
 
       if (filteredRoller.some((rol) => rol.isAdmin)) {
-        toast.info("Admin rolü silinemeyeceği için seçime dahil edilmedi.");
+        notificationService.info("Admin rolü silinemeyeceği için seçime dahil edilmedi.");
       }
 
       return;
@@ -152,7 +153,7 @@ const RolList = () => {
   const handleClick = (event, id) => {
     const rolItem = filteredRoller.find((rol) => rol.id === id);
     if (rolItem && rolItem.isAdmin) {
-      toast.warning("Admin rolü seçilemez. Bu rol sistem için gereklidir.");
+      notificationService.warning("Admin rolü seçilemez. Bu rol sistem için gereklidir.");
       return;
     }
 
@@ -172,7 +173,7 @@ const RolList = () => {
     e.stopPropagation();
 
     if (isAdmin && selected.indexOf(id) === -1) {
-      toast.warning("Admin rolü silinemez. Bu rol sistem için gereklidir.");
+      notificationService.warning("Admin rolü silinemez. Bu rol sistem için gereklidir.");
       return;
     }
 
@@ -183,7 +184,7 @@ const RolList = () => {
 
   const handleDeleteClick = (rol) => {
     if (rol.isAdmin || rol.isDefault) {
-      toast.error("Admin veya varsayılan rol silinemez, sistem için gereklidir.");
+      notificationService.error("Admin veya varsayılan rol silinemez, sistem için gereklidir.");
       return;
     }
     setDeleteDialogOpen(true);
@@ -192,7 +193,7 @@ const RolList = () => {
 
   const handleDeleteConfirm = async () => {
     if (!rolToDelete || !rolToDelete.id) {
-      toast.error("Silinecek rolün kimliği bulunamadı.");
+      notificationService.error("Silinecek rolün kimliği bulunamadı.");
       setDeleteDialogOpen(false);
       setRolToDelete(null);
       return;
@@ -200,13 +201,13 @@ const RolList = () => {
     try {
       const result = await dispatch(deleteRol(rolToDelete.id));
       if (result.type && result.type.endsWith("/fulfilled")) {
-        toast.success(`Rol başarıyla silindi: ${rolToDelete.ad}`);
+        notificationService.success(`Rol başarıyla silindi: ${rolToDelete.ad}`);
         dispatch(getRoller()); // Listeyi güncelle
       } else {
-        toast.error("Rol silinirken bir hata oluştu.");
+        notificationService.error("Rol silinirken bir hata oluştu.");
       }
     } catch (error) {
-      toast.error("Rol silinirken bir hata oluştu.");
+      notificationService.error("Rol silinirken bir hata oluştu.");
     }
     setDeleteDialogOpen(false);
     setRolToDelete(null);
@@ -218,13 +219,13 @@ const RolList = () => {
       return rol && (rol.isAdmin || rol.isDefault);
     });
     if (engelliRolVar) {
-      toast.error("Admin veya varsayılan rol silinemez. Lütfen seçimden çıkarın.");
+      notificationService.error("Admin veya varsayılan rol silinemez. Lütfen seçimden çıkarın.");
       return;
     }
     if (selected.length > 0) {
       setMultipleDeleteDialogOpen(true);
     } else {
-      toast.warning("Lütfen silinecek rolleri seçin");
+      notificationService.warning("Lütfen silinecek rolleri seçin");
     }
   };
 
@@ -329,7 +330,7 @@ const RolList = () => {
       setAdminYetkilerDialogOpen(true);
     } catch (error) {
       console.error("Admin yetkileri yüklenirken hata:", error);
-      toast.error("Yetkiler yüklenirken bir hata oluştu");
+      notificationService.error("Yetkiler yüklenirken bir hata oluştu");
     }
   };
 
