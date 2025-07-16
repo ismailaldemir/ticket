@@ -182,33 +182,45 @@ const RolList = () => {
   const isSelected = (id) => selected.indexOf(id) !== -1;
 
   const handleDeleteClick = (rol) => {
-    if (rol.isAdmin) {
-      toast.error("Admin rolü silinemez, sistem için gereklidir.");
+    if (rol.isAdmin || rol.isDefault) {
+      toast.error("Admin veya varsayılan rol silinemez, sistem için gereklidir.");
       return;
     }
-
     setDeleteDialogOpen(true);
     setRolToDelete(rol);
   };
 
   const handleDeleteConfirm = async () => {
-    await dispatch(deleteRol(rolToDelete._id));
+    if (!rolToDelete || !rolToDelete.id) {
+      toast.error("Silinecek rolün kimliği bulunamadı.");
+      setDeleteDialogOpen(false);
+      setRolToDelete(null);
+      return;
+    }
+    try {
+      const result = await dispatch(deleteRol(rolToDelete.id));
+      if (result.type && result.type.endsWith("/fulfilled")) {
+        toast.success(`Rol başarıyla silindi: ${rolToDelete.ad}`);
+        dispatch(getRoller()); // Listeyi güncelle
+      } else {
+        toast.error("Rol silinirken bir hata oluştu.");
+      }
+    } catch (error) {
+      toast.error("Rol silinirken bir hata oluştu.");
+    }
     setDeleteDialogOpen(false);
     setRolToDelete(null);
   };
 
   const handleMultipleDeleteClick = () => {
-    const isAdminRolSelected = selected.some((id) =>
-      filteredRoller.find((rol) => rol.id === id && rol.isAdmin)
-    );
-
-    if (isAdminRolSelected) {
-      toast.error(
-        "Admin rolü silinemez. Lütfen admin rolünü seçimden çıkarın."
-      );
+    const engelliRolVar = selected.some((id) => {
+      const rol = filteredRoller.find((r) => r.id === id);
+      return rol && (rol.isAdmin || rol.isDefault);
+    });
+    if (engelliRolVar) {
+      toast.error("Admin veya varsayılan rol silinemez. Lütfen seçimden çıkarın.");
       return;
     }
-
     if (selected.length > 0) {
       setMultipleDeleteDialogOpen(true);
     } else {
@@ -217,6 +229,7 @@ const RolList = () => {
   };
 
   const handleMultipleDeleteConfirm = async () => {
+    // Sadece id'leri gönderiyoruz
     await dispatch(deleteManyRoller(selected));
     setMultipleDeleteDialogOpen(false);
     setSelected([]);
@@ -298,10 +311,7 @@ const RolList = () => {
   };
 
   const canEditOrDeleteRole = (rol) => {
-    if (isAdminUser()) {
-      return !(rol.isAdmin && rol.ad === "Admin");
-    }
-
+    // Sadece admin ve varsayılan roller düzenlenemez/silinemez
     return !(rol.isAdmin || rol.isDefault);
   };
 
@@ -530,9 +540,10 @@ const RolList = () => {
                   filteredRoller
                     .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
                     .map((rol, index) => {
-                      const isItemSelected = isSelected(rol._id);
+                      // PostgreSQL'de id kullanılmalı
+                      const isItemSelected = isSelected(rol.id);
                       const labelId = `rol-checkbox-${index}`;
-                      const rowKey = rol._id || `rol-row-${index}`;
+                      const rowKey = rol.id || `rol-row-${index}`;
                       return (
                         <Grow
                           in={contentLoaded}
@@ -543,8 +554,8 @@ const RolList = () => {
                           <TableRow
                             key={rowKey}
                             hover
-                          onClick={(event) =>
-                              rol && !rol.isAdmin
+                            onClick={(event) =>
+                              canEditOrDeleteRole(rol)
                                 ? handleClick(event, rol.id)
                                 : null
                             }
@@ -554,11 +565,11 @@ const RolList = () => {
                             sx={{
                               "&:hover": {
                                 backgroundColor: (theme) =>
-                                  rol.isAdmin
+                                  rol.isAdmin || rol.isDefault
                                     ? theme.palette.action.hover
                                     : alpha(theme.palette.primary.main, 0.08),
                               },
-                              cursor: rol.isAdmin ? "default" : "pointer",
+                              cursor: rol.isAdmin || rol.isDefault ? "default" : "pointer",
                             }}
                           >
                             <TableCell padding="checkbox">
@@ -567,9 +578,9 @@ const RolList = () => {
                                 checked={isItemSelected}
                                 inputProps={{ "aria-labelledby": labelId }}
                                 onClick={(e) =>
-                                  handleCheckboxClick(e, rol.id, rol.isAdmin)
+                                  handleCheckboxClick(e, rol.id, rol.isAdmin || rol.isDefault)
                                 }
-                                disabled={rol.isAdmin}
+                                disabled={rol.isAdmin || rol.isDefault}
                               />
                             </TableCell>
                             <TableCell id={labelId} component="th" scope="row">
@@ -601,9 +612,7 @@ const RolList = () => {
                               {rol.isAdmin ? (
                                 <Tooltip title="Admin rolü tüm yetkilere sahiptir">
                                   <Chip
-                                    label={`Tüm Yetkiler (${
-                                      rol.yetkiler?.length || 0
-                                    })`}
+                                    label={`Tüm Yetkiler (${rol.yetkiler?.length || 0})`}
                                     color="error"
                                     variant="outlined"
                                     size="small"
