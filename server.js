@@ -23,8 +23,10 @@ app.use(express.json({ extended: false }));
 // Render.com veya farklı ortamlarda CORS'u dinamik olarak ayarlayın:
 const allowedOrigins = [
   "http://localhost:5001",
+  "http://localhost:5000",
   "http://localhost:3001", // Geliştirme ortamı için client adresi eklendi
-  "https://iaidat-frontend.onrender.com", // Render.com'daki client URL'nizi buraya ekleyin
+  "http://localhost:3000", // Geliştirme ortamı için client adresi eklendi
+    "https://iaidat-frontend.onrender.com", // Render.com'daki client URL'nizi buraya ekleyin
 ];
 
 app.use(

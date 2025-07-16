@@ -7,9 +7,10 @@ const fs = require("fs");
 const path = require("path");
 
 // Admin kullanıcısının bilgileri
-const adminEmail = "admin@example.com"; // config'den gelecek
-const adminPassword = "123456"; // config'den gelecek
-const adminName = "Admin Kullanıcı"; // config'den gelecek
+const config = require("../config/default.json");
+const adminEmail = config.adminEmail;
+const adminPassword = config.adminPassword;
+const adminName = config.adminName;
 
 async function setupAdmin() {
   try {

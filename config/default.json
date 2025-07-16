@@ -4,7 +4,7 @@
     "port": 5432,
     "database": "ticket_db",
     "username": "postgres",
-    "password": "password",
+    "password": "root",
     "dialect": "postgres",
     "logging": false
   },

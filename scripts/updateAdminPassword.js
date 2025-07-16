@@ -18,8 +18,9 @@ async function updateAdminPassword() {
 
     console.log("Admin kullanıcısı bulundu:", admin.email);
 
-    // Yeni şifreyi hashle
-    const newPassword = "123456";
+    // Config dosyasından adminPassword'u al
+    const config = require("../config/default.json");
+    const newPassword = config.adminPassword;
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(newPassword, salt);
 
