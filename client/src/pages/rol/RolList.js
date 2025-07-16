@@ -68,6 +68,23 @@ const RolList = () => {
   const navigate = useNavigate();
   const { roller, loading } = useSelector((state) => state.rol);
   const { user } = useSelector((state) => state.auth);
+  // Rol güncelleme sonrası listeyi otomatik yenilemek için
+  useEffect(() => {
+    // Eğer bir güncelleme işlemi olduysa, roller slice'ta güncellenen rolün birden fazla görünmesini engellemek için listeyi yenile
+    // roller state'i değiştiğinde ve loading false olduğunda tekrar getRoller çağrılırsa çoklama engellenir
+    if (!loading && roller.length > 0) {
+      // roller dizisinde aynı id'ye sahip birden fazla rol varsa, tekrar fetch et
+      const idSet = new Set();
+      const hasDuplicate = roller.some((rol) => {
+        if (idSet.has(rol.id)) return true;
+        idSet.add(rol.id);
+        return false;
+      });
+      if (hasDuplicate) {
+        dispatch(getRoller());
+      }
+    }
+  }, [roller, loading, dispatch]);
 
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);

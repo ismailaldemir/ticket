@@ -225,9 +225,9 @@ const rolSlice = createSlice({
         // Rolle ilişkili verilerin referans bütünlüğünü koruyarak güncelleme
         state.rol = action.payload;
 
-        // Roller listesini immutable olarak güncelle
+        // Roller listesini immutable olarak güncelle (id ile)
         state.roller = state.roller.map((rol) =>
-          rol._id === action.payload._id ? action.payload : rol
+          rol.id === action.payload.id ? action.payload : rol
         );
 
         state.loading = false;
@@ -244,7 +244,7 @@ const rolSlice = createSlice({
       })
       .addCase(deleteRol.fulfilled, (state, action) => {
         // Silinen rolü state'den kaldır
-        state.roller = state.roller.filter((rol) => rol._id !== action.payload);
+        state.roller = state.roller.filter((rol) => rol.id !== action.payload);
 
         // Eğer silinmiş rol, seçili rolse, seçili rolü temizle
         if (state.rol && state.rol._id === action.payload) {
@@ -265,7 +265,7 @@ const rolSlice = createSlice({
       })
       .addCase(deleteManyRoller.fulfilled, (state, action) => {
         state.roller = state.roller.filter(
-          (rol) => !action.payload.includes(rol._id)
+          (rol) => !action.payload.includes(rol.id)
         );
         state.loading = false;
         state.error = null;
