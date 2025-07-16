@@ -136,7 +136,7 @@ const RolList = () => {
     if (event.target.checked) {
       const newSelected = filteredRoller
         .filter((rol) => !rol.isAdmin)
-        .map((rol) => rol._id);
+        .map((rol) => rol.id);
 
       setSelected(newSelected);
 
@@ -150,7 +150,7 @@ const RolList = () => {
   };
 
   const handleClick = (event, id) => {
-    const rolItem = filteredRoller.find((rol) => rol._id === id);
+    const rolItem = filteredRoller.find((rol) => rol.id === id);
     if (rolItem && rolItem.isAdmin) {
       toast.warning("Admin rolü seçilemez. Bu rol sistem için gereklidir.");
       return;
@@ -199,7 +199,7 @@ const RolList = () => {
 
   const handleMultipleDeleteClick = () => {
     const isAdminRolSelected = selected.some((id) =>
-      filteredRoller.find((rol) => rol._id === id && rol.isAdmin)
+      filteredRoller.find((rol) => rol.id === id && rol.isAdmin)
     );
 
     if (isAdminRolSelected) {
@@ -310,7 +310,7 @@ const RolList = () => {
       setSelectedAdminRol(rol);
 
       if (rol && (!rol.yetkiler || rol.yetkiler.length === 0)) {
-        const rolResponse = await dispatch(getRolById(rol._id)).unwrap();
+        const rolResponse = await dispatch(getRolById(rol.id)).unwrap();
         if (rolResponse) {
           setSelectedAdminRol(rolResponse);
         }
@@ -543,9 +543,9 @@ const RolList = () => {
                           <TableRow
                             key={rowKey}
                             hover
-                            onClick={(event) =>
+                          onClick={(event) =>
                               rol && !rol.isAdmin
-                                ? handleClick(event, rol._id)
+                                ? handleClick(event, rol.id)
                                 : null
                             }
                             role="checkbox"
@@ -567,7 +567,7 @@ const RolList = () => {
                                 checked={isItemSelected}
                                 inputProps={{ "aria-labelledby": labelId }}
                                 onClick={(e) =>
-                                  handleCheckboxClick(e, rol._id, rol.isAdmin)
+                                  handleCheckboxClick(e, rol.id, rol.isAdmin)
                                 }
                                 disabled={rol.isAdmin}
                               />
@@ -641,7 +641,7 @@ const RolList = () => {
                                     <IconButton
                                       color="primary"
                                       component={Link}
-                                      to={`/roller/duzenle/${rol._id}`}
+                                      to={`/roller/duzenle/${rol.id}`}
                                       size="small"
                                       disabled={!canEditOrDeleteRole(rol)}
                                     >
@@ -779,7 +779,7 @@ const RolList = () => {
                         <Divider sx={{ mb: 1 }} />
                         <List dense>
                           {modulYetkiler.map((yetki) => (
-                            <ListItem key={yetki._id || yetki.kod}>
+                            <ListItem key={yetki.id || yetki.kod}>
                               <ListItemText
                                 primary={yetki.ad}
                                 secondary={`${yetki.kod} (${yetki.islem})`}

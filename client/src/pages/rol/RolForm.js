@@ -113,7 +113,11 @@ const RolForm = () => {
         ad: rol.ad || "",
         aciklama: rol.aciklama || "",
         yetkiler:
-          rol.yetkiler?.map((y) => (typeof y === "object" ? y._id : y)) || [],
+          rol.yetkiler?.map((y) =>
+            typeof y === "object"
+              ? y.id
+              : y
+          ) || [],
         isActive: rol.isActive !== undefined ? rol.isActive : true,
         isDefault: rol.isDefault !== undefined ? rol.isDefault : false,
         isAdmin: rol.isAdmin !== undefined ? rol.isAdmin : false,
@@ -173,10 +177,11 @@ const RolForm = () => {
   const handleYetkiToggle = (yetkiId) => {
     setFormData((prevState) => {
       const yetkilerSet = new Set(prevState.yetkiler);
-      if (yetkilerSet.has(yetkiId)) {
-        yetkilerSet.delete(yetkiId);
+      const normalizedId = yetkiId.id || yetkiId._id || yetkiId;
+      if (yetkilerSet.has(normalizedId)) {
+        yetkilerSet.delete(normalizedId);
       } else {
-        yetkilerSet.add(yetkiId);
+        yetkilerSet.add(normalizedId);
       }
       return {
         ...prevState,
@@ -187,20 +192,14 @@ const RolForm = () => {
 
   const handleModulToggle = (modul) => {
     setFormData((prevState) => {
-      const modulYetkiler = groupedYetkiler[modul].map((y) => y._id);
+      const modulYetkiler = groupedYetkiler[modul].map((y) => y.id || y._id);
       const yetkilerSet = new Set(prevState.yetkiler);
-
-      // Modüldeki tüm yetkiler seçili mi kontrol et
       const allSelected = modulYetkiler.every((id) => yetkilerSet.has(id));
-
       if (allSelected) {
-        // Tüm yetkileri kaldır
         modulYetkiler.forEach((id) => yetkilerSet.delete(id));
       } else {
-        // Tüm yetkileri ekle
         modulYetkiler.forEach((id) => yetkilerSet.add(id));
       }
-
       return {
         ...prevState,
         yetkiler: Array.from(yetkilerSet),
@@ -211,7 +210,7 @@ const RolForm = () => {
   const handleSelectAllYetkiler = () => {
     setFormData((prevState) => ({
       ...prevState,
-      yetkiler: yetkiler.map((y) => y._id),
+      yetkiler: yetkiler.map((y) => y.id || y._id),
     }));
   };
 
@@ -296,12 +295,12 @@ const RolForm = () => {
   };
 
   const isModuleSelected = (modul) => {
-    const modulYetkiler = groupedYetkiler[modul].map((y) => y._id);
+    const modulYetkiler = groupedYetkiler[modul].map((y) => y.id || y._id);
     return modulYetkiler.every((id) => formData.yetkiler.includes(id));
   };
 
   const isModulePartiallySelected = (modul) => {
-    const modulYetkiler = groupedYetkiler[modul].map((y) => y._id);
+    const modulYetkiler = groupedYetkiler[modul].map((y) => y.id || y._id);
     return (
       modulYetkiler.some((id) => formData.yetkiler.includes(id)) &&
       !modulYetkiler.every((id) => formData.yetkiler.includes(id))
@@ -540,53 +539,54 @@ const RolForm = () => {
                         </Box>
                         <List dense>
                           {modulYetkiler.map((yetki, yetkiIndex) => (
-                            <ListItem
-                              key={yetki._id || yetkiIndex}
-                              button
-                              onClick={() => {
-                                handleYetkiToggle(yetki._id);
-                                toggleYetkiSelection(yetki._id);
-                              }}
-                              disabled={isYetkiDisabled(yetki._id)}
-                              sx={{
-                                bgcolor:
-                                  selectMode &&
-                                  selectedYetkiler.includes(yetki._id)
-                                    ? "warning.light"
-                                    : formData.yetkiler.includes(yetki._id)
-                                    ? "action.selected"
-                                    : "transparent",
-                                borderRadius: 1,
-                                m: 0.5,
-                              }}
-                            >
-                              <ListItemIcon>
-                                <Checkbox
-                                  edge="start"
-                                  checked={
-                                    selectMode
-                                      ? selectedYetkiler.includes(yetki._id)
-                                      : formData.yetkiler.includes(yetki._id) ||
-                                        formData.isAdmin
-                                  }
-                                  tabIndex={-1}
-                                  disableRipple
-                                  disabled={isYetkiDisabled(yetki._id)}
-                                />
-                              </ListItemIcon>
-                              <ListItemText
-                                primary={yetki.ad}
-                                secondary={`${yetki.kod} (${yetki.islem})`}
-                                primaryTypographyProps={{
-                                  variant: "body2",
-                                  fontWeight: formData.yetkiler.includes(
-                                    yetki._id
-                                  )
-                                    ? "bold"
-                                    : "normal",
-                                }}
-                              />
-                            </ListItem>
+      <ListItem
+        key={yetki.id || yetki._id || yetkiIndex}
+        button
+        onClick={() => {
+          const yId = yetki.id || yetki._id;
+          handleYetkiToggle(yId);
+          toggleYetkiSelection(yId);
+        }}
+        disabled={isYetkiDisabled(yetki.id || yetki._id)}
+        sx={{
+          bgcolor:
+            selectMode &&
+            selectedYetkiler.includes(yetki.id || yetki._id)
+              ? "warning.light"
+              : formData.yetkiler.includes(yetki.id || yetki._id)
+              ? "action.selected"
+              : "transparent",
+          borderRadius: 1,
+          m: 0.5,
+        }}
+      >
+        <ListItemIcon>
+          <Checkbox
+            edge="start"
+            checked={
+              selectMode
+                ? selectedYetkiler.includes(yetki.id || yetki._id)
+                : formData.yetkiler.includes(yetki.id || yetki._id) ||
+                  formData.isAdmin
+            }
+            tabIndex={-1}
+            disableRipple
+            disabled={isYetkiDisabled(yetki.id || yetki._id)}
+          />
+        </ListItemIcon>
+        <ListItemText
+          primary={yetki.ad}
+          secondary={`${yetki.kod} (${yetki.islem})`}
+          primaryTypographyProps={{
+            variant: "body2",
+            fontWeight: formData.yetkiler.includes(
+              yetki.id || yetki._id
+            )
+              ? "bold"
+              : "normal",
+          }}
+        />
+      </ListItem>
                           ))}
                         </List>
                       </Box>
