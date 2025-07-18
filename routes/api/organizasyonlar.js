@@ -423,7 +423,7 @@ router.post(
         return res.status(400).json({ msg: "Geçersiz görsel tipi" });
       }
 
-      const organizasyon = await Organizasyon.findById(req.params.id);
+      const organizasyon = await Organizasyon.findByPk(req.params.id);
 
       if (!organizasyon) {
         // Dosya yüklendiyse sil
