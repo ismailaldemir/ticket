@@ -126,9 +126,11 @@ router.get(
   auth,
   yetkiKontrol("organizasyonlar_goruntuleme"),
   async (req, res) => {
-    const { id } = req.params;
     try {
-      const organizasyon = await Organizasyon.findByPk(id, {
+      const { id } = req.params;
+
+      const organizasyon = await Organizasyon.findOne({
+        where: { id },
         include: [
           { model: Sube, as: "subeler", attributes: ["id", "ad", "isActive"] },
           {
@@ -148,13 +150,15 @@ router.get(
           },
         ],
       });
+
       if (!organizasyon) {
         return res.status(404).json({ msg: "Organizasyon bulunamadı" });
       }
+
       res.json(organizasyon);
     } catch (err) {
       logger.error("Organizasyon getirilirken hata", { error: err.message });
-      res.status(500).send("Sunucu hatası");
+      res.status(500).json({ error: err.message });
     }
   }
 );
@@ -236,22 +240,21 @@ router.put(
       }
 
       // Güncelleme alanları
-      if (ad) organizasyon.ad = ad;
-      if (misyon !== undefined) organizasyon.misyon = misyon;
-      if (vizyon !== undefined) organizasyon.vizyon = vizyon;
-      if (hakkinda !== undefined) organizasyon.hakkinda = hakkinda;
-      if (kurulusTarihi !== undefined)
-        organizasyon.kurulusTarihi = kurulusTarihi;
-      if (aciklama !== undefined) organizasyon.aciklama = aciklama;
-      if (lokasyon) organizasyon.lokasyon = lokasyon;
-      if (iletisimBilgileri) organizasyon.iletisimBilgileri = iletisimBilgileri;
-      if (isActive !== undefined) organizasyon.isActive = isActive;
-
-      await organizasyon.save();
+      await organizasyon.update({
+        ...(ad && { ad }),
+        ...(misyon !== undefined && { misyon }),
+        ...(vizyon !== undefined && { vizyon }),
+        ...(hakkinda !== undefined && { hakkinda }),
+        ...(kurulusTarihi !== undefined && { kurulusTarihi }),
+        ...(aciklama !== undefined && { aciklama }),
+        ...(lokasyon && { lokasyon }),
+        ...(iletisimBilgileri && { iletisimBilgileri }),
+        ...(isActive !== undefined && { isActive })
+      });
       res.json(organizasyon);
     } catch (err) {
       logger.error("Organizasyon güncellenirken hata", { error: err.message });
-      if (err.kind === "ObjectId") {
+      if (err.name === "SequelizeValidationError" || err.name === "SequelizeDatabaseError") {
         return res.status(404).json({ msg: "Organizasyon bulunamadı" });
       }
       res.status(500).send("Sunucu hatası");
@@ -337,7 +340,11 @@ router.post(
       }
 
       // İlgili organizasyonları al ve görselleri sil
-      const organizasyonlar = await Organizasyon.find({ _id: { $in: ids } });
+      const organizasyonlar = await Organizasyon.findAll({
+        where: {
+          id: ids
+        }
+      });
 
       for (const org of organizasyonlar) {
         // Görselleri sil
@@ -363,17 +370,23 @@ router.post(
       }
 
       // İlgili telefon, adres ve sosyal medya kayıtlarını sil
-      await Telefon.deleteMany({
-        referansId: { $in: ids },
-        referansTur: "Organizasyon",
+      await Telefon.destroy({
+        where: {
+          referansId: ids,
+          referansTur: "Organizasyon",
+        }
       });
-      await Adres.deleteMany({
-        referansId: { $in: ids },
-        referansTur: "Organizasyon",
+      await Adres.destroy({
+        where: {
+          referansId: ids,
+          referansTur: "Organizasyon",
+        }
       });
-      await SosyalMedya.deleteMany({
-        referansId: { $in: ids },
-        referansTur: "Organizasyon",
+      await SosyalMedya.destroy({
+        where: {
+          referansId: ids,
+          referansTur: "Organizasyon",
+        }
       });
 
       // Organizasyonları sil
@@ -483,7 +496,7 @@ router.delete(
         return res.status(400).json({ msg: "Geçersiz görsel tipi" });
       }
 
-      const organizasyon = await Organizasyon.findById(req.params.id);
+      const organizasyon = await Organizasyon.findByPk(req.params.id);
 
       if (!organizasyon) {
         return res.status(404).json({ msg: "Organizasyon bulunamadı" });
@@ -535,10 +548,13 @@ router.get(
   yetkiKontrol("organizasyonlar_goruntuleme"),
   async (req, res) => {
     try {
-      const telefonlar = await Telefon.find({
-        referansId: req.params.id,
-        referansTur: "Organizasyon",
-      }).sort({ kayitTarihi: -1 });
+      const telefonlar = await Telefon.findAll({
+        where: {
+          referansId: req.params.id,
+          referansTur: "Organizasyon"
+        },
+        order: [['kayitTarihi', 'DESC']]
+      });
 
       res.json(telefonlar);
     } catch (err) {
@@ -611,10 +627,13 @@ router.get(
   yetkiKontrol("organizasyonlar_goruntuleme"),
   async (req, res) => {
     try {
-      const adresler = await Adres.find({
-        referansId: req.params.id,
-        referansTur: "Organizasyon",
-      }).sort({ varsayilan: -1, kayitTarihi: -1 });
+      const adresler = await Adres.findAll({
+        where: {
+          referansId: req.params.id,
+          referansTur: "Organizasyon"
+        },
+        order: [['varsayilan', 'DESC'], ['kayitTarihi', 'DESC']]
+      });
 
       res.json(adresler);
     } catch (err) {
@@ -661,18 +680,20 @@ router.post(
 
       // Eğer varsayılan olarak işaretlendiyse diğer varsayılan adresleri kaldır
       if (varsayilan) {
-        await Adres.updateMany(
+        await Adres.update(
+          { varsayilan: false },
           {
-            referansId: req.params.id,
-            referansTur: "Organizasyon",
-            varsayilan: true,
-          },
-          { $set: { varsayilan: false } }
+            where: {
+              referansId: req.params.id,
+              referansTur: "Organizasyon",
+              varsayilan: true
+            }
+          }
         );
       }
 
       // Yeni adres oluştur
-      const yeniAdres = new Adres({
+      const yeniAdres = await Adres.create({
         adres,
         il,
         ilce,
@@ -711,10 +732,13 @@ router.get(
   yetkiKontrol("organizasyonlar_goruntuleme"),
   async (req, res) => {
     try {
-      const sosyalMedyalar = await SosyalMedya.find({
-        referansId: req.params.id,
-        referansTur: "Organizasyon",
-      }).sort({ tur: 1, kayitTarihi: -1 });
+      const sosyalMedyalar = await SosyalMedya.findAll({
+        where: {
+          referansId: req.params.id,
+          referansTur: "Organizasyon"
+        },
+        order: [['tur', 'ASC'], ['kayitTarihi', 'DESC']]
+      });
 
       res.json(sosyalMedyalar);
     } catch (err) {

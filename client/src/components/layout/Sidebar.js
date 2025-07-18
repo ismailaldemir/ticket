@@ -43,6 +43,7 @@ import NotificationsIcon from "@mui/icons-material/Notifications";
 import CalendarIcon from "@mui/icons-material/CalendarToday";
 import ChevronLeft from "@mui/icons-material/ChevronLeft";
 import ChevronRight from "@mui/icons-material/ChevronRight";
+import AddIcon from "@mui/icons-material/Add";
 import IconButton from "@mui/material/IconButton";
 import { useDispatch, useSelector } from "react-redux";
 import { toggleSidebarCollapse } from "../../redux/layout/layoutSlice";
@@ -132,6 +133,27 @@ const Sidebar = ({ isOpen, onClose }) => {
       icon: <CalendarIcon />,
       path: "/randevu",
       yetkiKodu: "randevular_goruntuleme",
+    },
+    // Talep Yönetimi menü grubu
+    {
+      text: "Talep Yönetimi",
+      icon: <EventIcon />,
+      path: "/talepler",
+      yetkiKodu: "talepler_goruntuleme",
+      children: [
+        {
+          text: "Talep Listesi",
+          icon: <DashboardIcon fontSize="small" />,
+          path: "/talepler",
+          yetkiKodu: "talepler_goruntuleme",
+        },
+        {
+          text: "Yeni Talep Oluştur",
+          icon: <AddIcon fontSize="small" />,
+          path: "/talepler/yeni",
+          yetkiKodu: "talepler_ekleme",
+        },
+      ],
     },
   ];
 

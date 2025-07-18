@@ -139,6 +139,13 @@ import RandevuTanimlarList from "./pages/randevu/RandevuTanimlarList"; // Yeni i
 import RandevuTanimForm from "./pages/randevu/RandevuTanimForm"; // Yeni import
 import RandevuSlotForm from "./pages/randevu/RandevuSlotForm"; // Yeni slot formu bileşeni
 
+// Talep sayfaları için import'lar
+import TalepList from "./pages/talep/TalepList";
+import TalepForm from "./pages/talep/TalepForm";
+import TalepDetail from "./pages/talep/TalepDetail";
+import TalepAssign from "./pages/talep/TalepAssign";
+import TalepYorum from "./pages/talep/TalepYorum";
+
 // Sabit genişlikler
 const drawerWidth = 240;
 
@@ -1195,6 +1202,55 @@ const App = () => {
                 element={
                   <PrivateRoute>
                     <RandevuSlotForm />
+                  </PrivateRoute>
+                }
+              />
+              {/* Talep Yönetimi Route'ları */}
+              <Route
+                path="/talepler"
+                element={
+                  <PrivateRoute>
+                    <TalepList />
+                  </PrivateRoute>
+                }
+              />
+              <Route
+                path="/talepler/yeni"
+                element={
+                  <PrivateRoute>
+                    <TalepForm />
+                  </PrivateRoute>
+                }
+              />
+              <Route
+                path="/talepler/duzenle/:id"
+                element={
+                  <PrivateRoute>
+                    <TalepForm />
+                  </PrivateRoute>
+                }
+              />
+              <Route
+                path="/talepler/detay/:id"
+                element={
+                  <PrivateRoute>
+                    <TalepDetail />
+                  </PrivateRoute>
+                }
+              />
+              <Route
+                path="/talepler/atama/:id"
+                element={
+                  <PrivateRoute>
+                    <TalepAssign />
+                  </PrivateRoute>
+                }
+              />
+              <Route
+                path="/talepler/yorum/:id"
+                element={
+                  <PrivateRoute>
+                    <TalepYorum />
                   </PrivateRoute>
                 }
               />

@@ -17,6 +17,7 @@ import rol from "./rol/rolSlice";
 import yetki from "./yetki/yetkiSlice";
 import organizasyon from "./organizasyon/organizasyonSlice";
 import sube from "./sube/subeSlice";
+import talep from "./talep/talepSlice";
 import randevuTanimi from "./randevuTanimi/randevuTanimiSlice";
 import randevuSlot from "./randevuSlot/randevuSlotSlice";
 
@@ -39,6 +40,7 @@ export default combineReducers({
   yetki,
   organizasyon,
   sube,
+  talep,
   randevuTanimi,
   randevuSlot,
 });

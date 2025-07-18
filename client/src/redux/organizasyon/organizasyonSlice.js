@@ -437,7 +437,7 @@ const organizasyonSlice = createSlice({
         state.loading = false;
         state.organizasyon = action.payload;
         state.organizasyonlar = state.organizasyonlar.map((org) =>
-          org._id === action.payload._id ? action.payload : org
+          org.id === action.payload.id ? action.payload : org
         );
         state.error = null;
       })
@@ -452,9 +452,9 @@ const organizasyonSlice = createSlice({
       .addCase(deleteOrganizasyon.fulfilled, (state, action) => {
         state.loading = false;
         state.organizasyonlar = state.organizasyonlar.filter(
-          (org) => org._id !== action.payload
+          (org) => org.id !== action.payload
         );
-        if (state.organizasyon && state.organizasyon._id === action.payload) {
+        if (state.organizasyon && state.organizasyon.id === action.payload) {
           state.organizasyon = null;
         }
         state.error = null;
@@ -470,7 +470,7 @@ const organizasyonSlice = createSlice({
       .addCase(deleteManyOrganizasyonlar.fulfilled, (state, action) => {
         state.loading = false;
         state.organizasyonlar = state.organizasyonlar.filter(
-          (org) => !action.payload.includes(org._id)
+          (org) => !action.payload.includes(org.id)
         );
         state.error = null;
       })

@@ -44,15 +44,70 @@ const SidebarMenu = () => {
         },
       ],
     },
+    // Talep Yönetimi menü grubu
+    {
+      id: "talepler",
+      label: "Talep Yönetimi",
+      icon: <EventIcon />,
+      permission: "talepler_goruntuleme",
+      items: [
+        {
+          id: "talep-listesi",
+          label: "Talep Listesi",
+          path: "/talepler",
+          permission: "talepler_goruntuleme",
+          icon: <DashboardIcon fontSize="small" />,
+        },
+        {
+          id: "talep-yeni",
+          label: "Yeni Talep Oluştur",
+          path: "/talepler/yeni",
+          permission: "talepler_ekleme",
+          icon: <AddIcon fontSize="small" />,
+        },
+      ],
+    },
   ];
+
+  // Kullanıcıyı al
+  const user = JSON.parse(localStorage.getItem("user"));
+  // Superadmin kontrolü
+  const isSuperadmin = user && (
+    user.email === (window.config?.app?.adminEmail || process.env.REACT_APP_ADMIN_EMAIL) ||
+    (user.permissions && user.permissions.some(
+      (perm) => perm === "superadmin_full_access" || perm.kod === "superadmin_full_access"
+    ))
+  );
+
+  // Menüleri filtrele: superadmin ise tüm menüler ve alt menüler görünür
+  const visibleMenus = isSuperadmin
+    ? menuItems
+    : menuItems.filter((menu) => {
+        if (menu.permission && !(user?.permissions?.some(
+          (perm) => perm === menu.permission || perm.kod === menu.permission
+        ))) {
+          return false;
+        }
+        return true;
+      });
 
   return (
     <div>
-      {menuItems.map((menu) => (
+      {visibleMenus.map((menu) => (
         <div key={menu.id}>
           <h3>{menu.label}</h3>
           <ul>
-            {menu.items.map((item) => (
+            {(isSuperadmin
+              ? menu.items
+              : menu.items.filter((item) => {
+                  if (item.permission && !(user?.permissions?.some(
+                    (perm) => perm === item.permission || perm.kod === item.permission
+                  ))) {
+                    return false;
+                  }
+                  return true;
+                })
+            ).map((item) => (
               <li key={item.id}>
                 <a href={item.path}>{item.label}</a>
               </li>

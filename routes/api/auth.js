@@ -112,10 +112,39 @@ router.post(
           // Kullanıcıyı rollerini ve yetkilerini dahil ederek tekrar çek
           const populatedUser = await User.findByPk(user.id, {
             attributes: { exclude: ["password"] },
+            include: [
+              {
+                model: require("../../models/Rol"),
+                as: "roller",
+                attributes: ["ad", "isAdmin"],
+                include: [
+                  {
+                    model: require("../../models/Yetki"),
+                    as: "yetkiler",
+                    attributes: ["kod", "ad", "modul", "islem"],
+                  },
+                ],
+              },
+            ],
           });
 
           // Kullanıcı objesini sadeleştir
           let userObj = populatedUser.dataValues;
+
+          // Permissions dizisini rollerdeki tüm yetki kodlarından oluştur
+          const permissions = [];
+          if (userObj.roller && userObj.roller.length > 0) {
+            userObj.roller.forEach((rol) => {
+              if (rol.yetkiler && rol.yetkiler.length > 0) {
+                rol.yetkiler.forEach((yetki) => {
+                  if (yetki.kod && !permissions.includes(yetki.kod)) {
+                    permissions.push(yetki.kod);
+                  }
+                });
+              }
+            });
+          }
+          userObj.permissions = permissions;
 
           res.json({
             token,

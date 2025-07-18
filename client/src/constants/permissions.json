@@ -126,5 +126,40 @@
     "modul": "Hızlı İşlemler",
     "islem": "silme",
     "isActive": true
+  },
+  {
+    "kod": "superadmin_full_access",
+    "ad": "Superadmin Tam Yetki",
+    "modul": "Tüm Modüller",
+    "islem": "full_access",
+    "isActive": true
+  },
+  {
+    "kod": "talepler_goruntuleme",
+    "ad": "Talepleri Görüntüleme",
+    "modul": "Talep Yönetimi",
+    "islem": "goruntuleme",
+    "isActive": true
+  },
+  {
+    "kod": "talepler_ekleme",
+    "ad": "Talep Ekleme",
+    "modul": "Talep Yönetimi",
+    "islem": "ekleme",
+    "isActive": true
+  },
+  {
+    "kod": "talepler_duzenleme",
+    "ad": "Talep Düzenleme",
+    "modul": "Talep Yönetimi",
+    "islem": "duzenleme",
+    "isActive": true
+  },
+  {
+    "kod": "talepler_silme",
+    "ad": "Talep Silme",
+    "modul": "Talep Yönetimi",
+    "islem": "silme",
+    "isActive": true
   }
 ]

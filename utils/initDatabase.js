@@ -1,4 +1,4 @@
-const { User, Rol, Yetki } = require("../models");
+const { User, Rol, Yetki, sequelize } = require("../models");
 const bcrypt = require("bcryptjs");
 const config = require("config");
 const fs = require("fs");
@@ -8,6 +8,15 @@ const path = require("path");
  * Sistem başlatıldığında admin kullanıcısını ve gerekli yetkileri kontrol edip oluşturan fonksiyon
  */
 const initializeAdmin = async () => {
+  // --- PostgreSQL enum tipine 'full_access' değerini ekle ---
+  const { Sequelize } = require('sequelize');
+  try {
+    // Enum değerini ekle (varsa hata vermez, yoksa ekler)
+    await sequelize.query("DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'enum_yetkiler_islem') THEN RAISE NOTICE 'enum_yetkiler_islem yok'; ELSE BEGIN IF NOT EXISTS (SELECT 1 FROM pg_enum WHERE enumlabel = 'full_access' AND enumtypid = (SELECT oid FROM pg_type WHERE typname = 'enum_yetkiler_islem')) THEN ALTER TYPE enum_yetkiler_islem ADD VALUE 'full_access'; END IF; END; END IF; END $$;");
+    console.log("PostgreSQL enum_yetkiler_islem tipine 'full_access' değeri eklendi (veya zaten vardı).");
+  } catch (err) {
+    console.warn("Enum değer ekleme sırasında hata: ", err.message);
+  }
   // Admin kullanıcı bilgileri - config'den alma
   const adminEmail = config.get("adminEmail") || "admin@example.com";
   const adminPassword = config.get("adminPassword") || "admin123456";
@@ -156,23 +165,34 @@ const initializeAdmin = async () => {
       ],
     });
 
+    // Admin kullanıcısına permissions dizisi ekle (rollerdeki tüm yetki kodları)
+    const adminPermissions = [];
+    if (adminDetay.roller && adminDetay.roller.length > 0) {
+      adminDetay.roller.forEach((rol) => {
+        if (rol.yetkiler && rol.yetkiler.length > 0) {
+          rol.yetkiler.forEach((yetki) => {
+            if (yetki.kod && !adminPermissions.includes(yetki.kod)) {
+              adminPermissions.push(yetki.kod);
+            }
+          });
+        }
+      });
+    }
+    // permissions dizisini User objesine ekle
+    adminDetay.permissions = adminPermissions;
+
+    console.log("Admin kullanıcısı detayları:");
     console.log("Admin kullanıcısı detayları:");
     console.log("- Adı:", adminDetay.name);
     console.log("- E-posta:", adminDetay.email);
-    console.log(
-      "- Rol sayısı:",
-      adminDetay.roller ? adminDetay.roller.length : 0
-    );
-
+    console.log("- Rol sayısı:", adminDetay.roller ? adminDetay.roller.length : 0);
+    console.log("- Permissions:", adminDetay.permissions);
     if (adminDetay.roller && adminDetay.roller.length > 0) {
       adminDetay.roller.forEach((rol) => {
         console.log(`- Rol: ${rol.ad} (isAdmin: ${rol.isAdmin})`);
-        console.log(
-          `  - Yetki sayısı: ${rol.yetkiler ? rol.yetkiler.length : 0}`
-        );
+        console.log(`  - Yetki sayısı: ${rol.yetkiler ? rol.yetkiler.length : 0}`);
       });
     }
-
     // Model adını detaylı bir şekilde yazdıralım:
     console.log("Yetki modelinin adı:", Yetki.modelName);
 

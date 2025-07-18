@@ -207,30 +207,28 @@ const OrganizasyonForm = () => {
   };
 
   // Görsel yükleme
-  const handleGorselUpload = async (type) => {
-    const file = selectedFiles[type];
-    if (!file) return;
+    const handleGorselUpload = async (type) => {
+      const file = selectedFiles[type];
+      if (!file) return;
 
-    const formData = new FormData();
-    formData.append("gorsel", file);
+      const formData = new FormData();
+      formData.append("gorsel", file);
 
-    try {
-      await dispatch(
-        uploadOrganizasyonGorsel({
-          id: organizasyon._id,
-          gorselTipi: type,
-          formData,
-        })
-      ).unwrap();
-
-      setSelectedFiles((prev) => ({
+      try {
+        await dispatch(
+          uploadOrganizasyonGorsel({
+            id: organizasyon.id,
+            gorselTipi: type,
+            formData,
+          })
+        ).unwrap();      setSelectedFiles((prev) => ({
         ...prev,
         [type]: null,
       }));
       toast.success(`${type} başarıyla yüklendi`);
       // Görsel yüklendikten sonra organizasyonun güncel verisini çek
-      if (organizasyon._id) {
-        await dispatch(getOrganizasyonById(organizasyon._id));
+      if (organizasyon.id) {
+        await dispatch(getOrganizasyonById(organizasyon.id));
       }
     } catch (error) {
       toast.error(`${type} yüklenirken bir hata oluştu`);
@@ -243,14 +241,14 @@ const OrganizasyonForm = () => {
     try {
       await dispatch(
         deleteOrganizasyonGorsel({
-          id: organizasyon._id,
+          id: organizasyon.id,
           gorselTipi: type,
         })
       ).unwrap();
       toast.success(`${type} başarıyla silindi`);
       // Görsel silindikten sonra organizasyonun güncel verisini çek
-      if (organizasyon._id) {
-        await dispatch(getOrganizasyonById(organizasyon._id));
+      if (organizasyon.id) {
+        await dispatch(getOrganizasyonById(organizasyon.id));
       }
     } catch (error) {
       toast.error(`${type} silinirken bir hata oluştu`);

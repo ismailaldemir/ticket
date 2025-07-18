@@ -128,7 +128,7 @@ const OrganizasyonList = () => {
   const handleDeleteConfirm = async () => {
     if (organizasyonToDelete) {
       try {
-        await dispatch(deleteOrganizasyon(organizasyonToDelete._id)).unwrap();
+        await dispatch(deleteOrganizasyon(organizasyonToDelete.id)).unwrap();
         toast.success(`${organizasyonToDelete.ad} organizasyonu silindi`);
       } catch (error) {
         toast.error(error.msg || 'Organizasyon silinirken bir hata oluştu');
@@ -161,7 +161,7 @@ const OrganizasyonList = () => {
   // Çoklu seçim işlemleri
   const handleSelectAllClick = (event) => {
     if (event.target.checked) {
-      const newSelected = filteredOrganizasyonlar.map(org => org._id);
+      const newSelected = filteredOrganizasyonlar.map(org => org.id);
       setSelected(newSelected);
       return;
     }
@@ -293,6 +293,15 @@ const OrganizasyonList = () => {
       </Box>
     );
   }
+
+  // Düzenleme işlemi
+  const handleEditClick = (organizasyon) => {
+    if (organizasyon && organizasyon.id) {
+      navigate(`/organizasyonlar/duzenle/${organizasyon.id}`);
+    } else {
+      toast.error('Organizasyon düzenleme işlemi başlatılamadı');
+    }
+  };
 
   return (
     <Box sx={{ p: 3 }}>
@@ -445,18 +454,18 @@ const OrganizasyonList = () => {
                   visibleOrganizasyonlar.map((organizasyon, index) => {
                     // Animasyon gecikmesini hesapla
                     const delay = calculateAnimationDelay(index, visibleOrganizasyonlar.length);
-                    const isItemSelected = isSelected(organizasyon._id);
+                    const isItemSelected = isSelected(organizasyon.id);
                     
                     return (
                       <Grow
                         in={contentLoaded}
-                        key={organizasyon._id}
+                        key={organizasyon.id}
                         timeout={{ enter: 300 + delay }}
                         style={{ transformOrigin: '0 0 0' }}
                       >
                         <TableRow 
                           hover
-                          onClick={(event) => handleClick(event, organizasyon._id)}
+                          onClick={(event) => handleClick(event, organizasyon.id)}
                           role="checkbox"
                           aria-checked={isItemSelected}
                           selected={isItemSelected}
@@ -466,8 +475,8 @@ const OrganizasyonList = () => {
                             <Checkbox
                               color="primary"
                               checked={isItemSelected}
-                              inputProps={{ 'aria-labelledby': `organizasyon-${organizasyon._id}` }}
-                              onClick={(e) => handleCheckboxClick(e, organizasyon._id)}
+                              inputProps={{ 'aria-labelledby': `organizasyon-${organizasyon.id}` }}
+                              onClick={(e) => handleCheckboxClick(e, organizasyon.id)}
                             />
                           </TableCell>
                           <TableCell>{organizasyon.ad}</TableCell>
@@ -485,7 +494,7 @@ const OrganizasyonList = () => {
                                 <IconButton
                                   color="primary"
                                   component={Link}
-                                  to={`/organizasyonlar/duzenle/${organizasyon._id}`}
+                                  to={`/organizasyonlar/duzenle/${organizasyon.id}`}
                                   size="small"
                                   onClick={(e) => e.stopPropagation()}
                                 >
@@ -512,7 +521,7 @@ const OrganizasyonList = () => {
                   })
                 ) : (
                   <TableRow>
-                    <TableCell colSpan={4} align="center">
+                    <TableCell colSpan={5} align="center">
                       Hiç organizasyon bulunamadı
                     </TableCell>
                   </TableRow>
