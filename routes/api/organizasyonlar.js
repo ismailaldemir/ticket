@@ -561,7 +561,9 @@ router.get(
 
       res.json(telefonlar);
     } catch (err) {
-      logger.error("Organizasyon telefonları getirilirken hata", { error: err.message });
+      logger.error("Organizasyon telefonları getirilirken hata", {
+        error: err.message,
+      });
       res.status(500).send("Sunucu hatası");
     }
   }
@@ -580,38 +582,29 @@ router.post(
   ],
   async (req, res) => {
     try {
-      const organizasyon = await Organizasyon.findById(req.params.id);
+      const organizasyon = await Organizasyon.findOne({
+        where: { id: req.params.id }
+      });
+
       if (!organizasyon) {
         return res.status(404).json({ msg: "Organizasyon bulunamadı" });
       }
 
-      const {
+      const { telefonNumarasi, tur, aciklama, isActive } = req.body;
+
+      // Yeni telefon oluştur
+      const telefon = await Telefon.create({
         telefonNumarasi,
         tur,
         aciklama,
-        baslamaTarihi,
-        bitisTarihi,
-        durumu,
-      } = req.body;
-
-      // Yeni telefon oluştur
-      const yeniTelefon = new Telefon({
-        telefonNumarasi,
-        tur: tur || "İş",
-        aciklama,
-        referansId: req.params.id,
+        isActive: isActive || true,
         referansTur: "Organizasyon",
-        baslamaTarihi,
-        bitisTarihi,
-        durumu: durumu || "Aktif",
+        referansId: req.params.id
       });
 
-      const telefon = await yeniTelefon.save();
       res.json(telefon);
     } catch (err) {
-      logger.error("Organizasyon telefon eklenirken hata", {
-        error: err.message,
-      });
+      logger.error("Organizasyon telefonu eklenirken hata", { error: err.message });
       res.status(500).send("Sunucu hatası");
     }
   }
