@@ -655,7 +655,7 @@ router.post(
   ],
   async (req, res) => {
     try {
-      const organizasyon = await Organizasyon.findById(req.params.id);
+      const organizasyon = await Organizasyon.findByPk(req.params.id);
       if (!organizasyon) {
         return res.status(404).json({ msg: "Organizasyon bulunamadı" });
       }
@@ -699,12 +699,12 @@ router.post(
         tur: tur || "İş",
         lokasyon,
         aciklama,
-        referansId: req.params.id,
-        referansTur: "Organizasyon",
         varsayilan: varsayilan || false,
         baslamaTarihi,
         bitisTarihi,
         durumu: durumu || "Aktif",
+        referansTur: "Organizasyon",
+        referansId: req.params.id
       });
 
       const adresKaydi = await yeniAdres.save();
