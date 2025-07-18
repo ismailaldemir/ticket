@@ -553,14 +553,15 @@ router.get(
           referansId: req.params.id,
           referansTur: "Organizasyon"
         },
-        order: [['kayitTarihi', 'DESC']]
+        attributes: {
+          exclude: ['createdAt', 'updatedAt']
+        },
+        order: [['durumu', 'ASC'], ['tur', 'ASC']]
       });
 
       res.json(telefonlar);
     } catch (err) {
-      logger.error("Organizasyon telefonları getirilirken hata", {
-        error: err.message,
-      });
+      logger.error("Organizasyon telefonları getirilirken hata", { error: err.message });
       res.status(500).send("Sunucu hatası");
     }
   }
@@ -632,7 +633,10 @@ router.get(
           referansId: req.params.id,
           referansTur: "Organizasyon"
         },
-        order: [['varsayilan', 'DESC'], ['kayitTarihi', 'DESC']]
+        attributes: {
+          exclude: ['createdAt', 'updatedAt']
+        },
+        order: [['durumu', 'ASC'], ['tur', 'ASC']]
       });
 
       res.json(adresler);
